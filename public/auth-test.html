@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hivoraa - Google Sign In Test</title>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 40px; background: #0a0a0d; color: #e0e0e0; }
+    button { padding: 12px 24px; font-size: 16px; cursor: pointer; border-radius: 8px; border: none; background: #4285f4; color: white; }
+    textarea { margin-top: 16px; width: 90%; max-width: 600px; height: 120px; }
+  </style>
+</head>
+<body>
+  <h1>Hivoraa Auth Test</h1>
+  <button onclick="login()">Sign in with Google</button>
+  <div id="result"></div>
+
+  <script>
+    const CLIENT_ID = "626986280198-sti102t5u7fh6jv7fsfl9iqukn0l7rgf.apps.googleusercontent.com";
+    const REDIRECT_URI = "http://localhost:5000/auth-test.html";
+
+    function login() {
+      const authUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
+        "?client_id=" + CLIENT_ID +
+        "&redirect_uri=" + REDIRECT_URI +
+        "&response_type=token" +
+        "&scope=openid%20email%20profile" +
+        "&prompt=select_account";
+      window.location.href = authUrl;
+    }
+
+    window.onload = function() {
+      const hash = window.location.hash;
+      if (hash) {
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get("access_token");
+        
+        if (accessToken) {
+          fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+            headers: { "Authorization": "Bearer " + accessToken }
+          })
+          .then(res => res.json())
+          .then(user => {
+            fetch("/api/auth/google", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                token: accessToken,
+                email: user.email,
+                name: user.name,
+                sub: user.sub
+              })
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                document.getElementById("result").innerHTML = `
+                  <h3>Connected</h3>
+                  <p>Email: ${data.data.user.email}</p>
+                  <p>Pseudonym: ${data.data.user.pseudonym || "Not set"}</p>
+                  <h4>JWT Token:</h4>
+                  <textarea readonly>${data.data.token}</textarea>
+                `;
+              }
+            });
+          });
+          window.location.hash = "";
+        }
+      }
+    };
+  </script>
+</body>
+</html>

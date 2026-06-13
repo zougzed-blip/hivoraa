@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Study Group Chat Test</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #0a0a0d; color: #e0e0e0; }
+    h2 { color: #c8a44e; }
+    .container { max-width: 600px; margin: 0 auto; }
+    input, button { padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #333; background: #1a1a20; color: #e0e0e0; }
+    button { cursor: pointer; background: #c8a44e; color: #000; border: none; }
+    .messages { border: 1px solid #333; padding: 15px; height: 300px; overflow-y: auto; margin: 15px 0; border-radius: 6px; background: #111; }
+    .msg { margin: 8px 0; padding: 8px; background: #1a1a20; border-radius: 6px; }
+    .msg .sender { font-weight: bold; color: #c8a44e; }
+    .msg audio { margin-top: 5px; width: 100%; }
+    .controls { display: flex; gap: 10px; align-items: center; }
+    .controls input { flex: 1; }
+    #micBtn { width: 120px; }
+    #recordingStatus { color: #888; font-size: 12px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Study Group Chat</h2>
+  
+  <div>
+    <label>JWT Token:</label>
+    <input type="text" id="token" placeholder="Bearer eyJ...">
+  </div>
+  <div>
+    <label>Group ID:</label>
+    <input type="text" id="groupId" value="6a21332766abeece7fa85b04">
+  </div>
+  
+  <button onclick="joinGroup()">Connect to Group</button>
+  <span id="status" style="margin-left:10px;color:#888;">Not connected</span>
+  
+  <div class="messages" id="messages"></div>
+  
+  <div class="controls">
+    <input type="text" id="messageText" placeholder="Type a message...">
+    <button onclick="sendMessage()">Send</button>
+    <button id="micBtn">Start Recording</button>
+    <span id="recordingStatus"></span>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  let socket;
+  let mediaRecorder;
+  let audioChunks = [];
+  let audioStream;
+  let isRecording = false;
+
+  function joinGroup() {
+    const groupId = document.getElementById('groupId').value;
+    socket = io('http://localhost:5000');
+    
+    socket.on('connect', () => {
+      socket.emit('joinGroup', groupId);
+      document.getElementById('status').innerHTML = 'Connected';
+      document.getElementById('status').style.color = '#4caf50';
+    });
+
+    socket.on('newMessage', (msg) => {
+      const div = document.createElement('div');
+      div.className = 'msg';
+      
+      if (msg.type === 'audio') {
+        div.innerHTML = `<span class="sender">${msg.sender.pseudonym}:</span> <audio controls src="${msg.audioUrl}"></audio>`;
+      } else {
+        div.innerHTML = `<span class="sender">${msg.sender.pseudonym}:</span> ${msg.text}`;
+      }
+      
+      document.getElementById('messages').appendChild(div);
+      document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+    });
+  }
+
+  async function sendMessage() {
+    const text = document.getElementById('messageText').value;
+    const groupId = document.getElementById('groupId').value;
+    const token = document.getElementById('token').value;
+
+    if (!text) return;
+
+    await fetch(`/api/study-groups/${groupId}/message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ text })
+    });
+
+    document.getElementById('messageText').value = '';
+  }
+
+  document.getElementById('micBtn').addEventListener('click', async () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      await startRecording();
+    }
+  });
+
+  async function startRecording() {
+    try {
+      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks = [];
+      
+      mediaRecorder = new MediaRecorder(audioStream);
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        if (audioChunks.length === 0) return;
+
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        
+        console.log('Audio blob size:', audioBlob.size, 'bytes');
+
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'voice.webm');
+
+        const groupId = document.getElementById('groupId').value;
+        const token = document.getElementById('token').value;
+
+        const res = await fetch(`/api/study-groups/${groupId}/audio`, {
+          method: 'POST',
+          headers: { 'Authorization': token },
+          body: formData
+        });
+        
+        const data = await res.json();
+        console.log('Upload response:', data);
+
+        if (audioStream) {
+          audioStream.getTracks().forEach(track => track.stop());
+        }
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+      document.getElementById('micBtn').style.background = '#f44336';
+      document.getElementById('micBtn').textContent = 'Stop Recording';
+      document.getElementById('recordingStatus').textContent = 'Recording...';
+      
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Microphone access denied.');
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      isRecording = false;
+      document.getElementById('micBtn').style.background = '#c8a44e';
+      document.getElementById('micBtn').textContent = 'Start Recording';
+      document.getElementById('recordingStatus').textContent = 'Uploading...';
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Firebase Config Check</title>
+  <style>
+    body { font-family: monospace; background: #1a1a1a; color: #0f0; padding: 20px; }
+    .box { background: #222; padding: 15px; margin: 10px 0; border: 1px solid #444; border-radius: 5px; }
+    .ok { color: #0f0; } .bad { color: #f00; } .warn { color: #ff0; }
+    h1 { color: #0ff; margin-top: 0; }
+    button { background: #0ff; color: #000; padding: 10px 20px; border: none; cursor: pointer; border-radius: 3px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Firebase Debug Check</h1>
+  <div id="debug"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+    import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+
+    const debug = document.getElementById('debug');
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB-HfRWt-2PsbQrtsx2bAz6TmqDQPxbGw8",
+      authDomain: "hivoraa-323d9.firebaseapp.com",
+      projectId: "hivoraa-323d9",
+    };
+
+    function log(title, msg, status = 'warn') {
+      const cls = status === 'ok' ? 'ok' : status === 'bad' ? 'bad' : 'warn';
+      debug.innerHTML += `<div class="box"><strong class="${cls}">[${status.toUpperCase()}]</strong> ${title}<br><pre>${msg}</pre></div>`;
+    }
+
+    log('Config Firebase', JSON.stringify(firebaseConfig, null, 2));
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    
+    log('✅ Firebase App', 'Initialisée', 'ok');
+    log('💡 Info', `Domaine actuel: ${window.location.hostname}\nPort: ${window.location.port}`, 'warn');
+
+    // Définir la fonction globalement AVANT onAuthStateChanged
+    window.testGoogleSignIn = async () => {
+      try {
+        console.log('[DEBUG] Clic sur bouton, appel signInWithRedirect...');
+        log('🔄 Connexion', 'Tentative de redirection vers Google...', 'warn');
+        await signInWithRedirect(auth, provider);
+      } catch (err) {
+        console.error('[DEBUG] Erreur catch:', err);
+        log('❌ Erreur Firebase', `Code: ${err.code}\nMessage: ${err.message}`, 'bad');
+        
+        const msgs = {
+          'auth/unauthorized-domain': '❌ DOMAINE NON AUTORISÉ\n✅ Solution:\n1. Va à: https://console.firebase.google.com/project/hivoraa-323d9/authentication/settings\n2. Scroll vers "Authorized domains"\n3. Ajoute:\n   - localhost\n   - 127.0.0.1\n   - localhost:5000',
+          'auth/operation-not-allowed': '❌ Google Sign-In n\'est pas activé!\n✅ Solution:\n1. Va à: https://console.firebase.google.com/project/hivoraa-323d9/authentication/providers\n2. Active le provider "Google"',
+          'auth/network-request-failed': '❌ Erreur réseau - Vérifiez votre connexion internet',
+          'auth/popup-closed-by-user': '⚠️ Popup fermée par l\'utilisateur',
+        };
+        
+        if (msgs[err.code]) {
+          log('💡 Diagnostic', msgs[err.code], 'bad');
+        }
+      }
+    };
+
+    // Check onAuthStateChanged
+    onAuthStateChanged(auth, (user) => {
+      console.log('[DEBUG] onAuthStateChanged:', user?.email || 'null');
+      
+      if (user) {
+        log('✅ Utilisateur Connecté', `Email: ${user.email}\nUID: ${user.uid}`, 'ok');
+        log('✅ Prêt à obtenir Token', 'Token disponible via getIdToken()', 'ok');
+        debug.innerHTML += `
+          <div class="box" style="background: #1a3a1a; border-left-color: #0f0;">
+            <button onclick="location.href='/test.html'" style="background: #0f0; color: #000; padding: 12px 24px; font-size: 16px;">
+              ✅ Aller à test.html
+            </button>
+          </div>
+        `;
+      } else {
+        log('⚠️ Utilisateur', 'Non connecté (normal au premier chargement)', 'warn');
+        
+        debug.innerHTML += `
+          <div class="box" style="border-left-color: #ff0;">
+            <h3 style="margin-top: 0; color: #ff0;">🧪 Test connexion Google</h3>
+            <p>Clique le bouton pour tester la connexion Google:</p>
+            <button onclick="window.testGoogleSignIn()" style="background: #ff0; color: #000; padding: 10px 20px; font-weight: bold; cursor: pointer;">
+              Tester Google Sign-In
+            </button>
+          </div>
+        `;
+
+        log('📋 Checklist Configuration', 
+          '1. ✅ API Key: Configurée\n' +
+          '2. ? Google Sign-In: Activé dans Firebase Console?\n' +
+          '3. ? Domaines autorisés: localhost ajouté?\n' +
+          '4. ✅ Auth initialized\n\n' +
+          'Clique le bouton "Tester Google Sign-In" pour voir les erreurs détaillées.',
+          'warn');
+      }
+    });
+
+  </script>
+</body>
+</html>

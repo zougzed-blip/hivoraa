@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Talent Chat</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #0a0a0d; color: #e0e0e0; }
+    h2 { color: #c8a44e; }
+    .container { max-width: 600px; margin: 0 auto; }
+    input, button { padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #333; background: #1a1a20; color: #e0e0e0; width: 100%; box-sizing: border-box; }
+    button { cursor: pointer; background: #c8a44e; color: #000; border: none; }
+    .messages { border: 1px solid #333; padding: 15px; height: 350px; overflow-y: auto; margin: 15px 0; border-radius: 6px; background: #111; }
+    .msg { margin: 8px 0; padding: 8px; background: #1a1a20; border-radius: 6px; }
+    .msg .sender { font-weight: bold; color: #c8a44e; }
+    .msg .time { font-size: 11px; color: #888; }
+    .controls { display: flex; gap: 10px; }
+    .controls input { flex: 1; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Talent Chat</h2>
+  
+  <label>Your JWT Token:</label>
+  <input type="text" id="token" placeholder="Bearer eyJ...">
+  
+  <label>Your User ID:</label>
+  <input type="text" id="userId" placeholder="6a200742c26b678794cb3f83">
+  
+  <label>Talent ID:</label>
+  <input type="text" id="talentId" placeholder="6a217002b9533570c640ca1b">
+  
+  <button onclick="connectChat()">Connect</button>
+  <span id="status" style="margin-left:10px;color:#888;">Offline</span>
+  
+  <div class="messages" id="messages"></div>
+  
+  <div class="controls">
+    <input type="text" id="messageText" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendMessage()">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  let socket;
+
+  function connectChat() {
+    const userId = document.getElementById('userId').value;
+    
+    if (socket) {
+      socket.disconnect();
+    }
+    
+    socket = io('http://localhost:5000');
+    
+    socket.on('connect', () => {
+      console.log('Socket connected, joining room for user:', userId);
+      socket.emit('joinUser', userId);
+      document.getElementById('status').innerHTML = 'Connected';
+      document.getElementById('status').style.color = '#4caf50';
+      loadHistory();
+    });
+
+    socket.on('newMessage', (msg) => {
+      console.log('New message received:', msg);
+      addMessageToChat(msg);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Socket disconnected');
+      document.getElementById('status').innerHTML = 'Disconnected';
+      document.getElementById('status').style.color = '#f44336';
+    });
+  }
+
+  function addMessageToChat(msg) {
+    const messagesDiv = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg';
+    const time = new Date(msg.createdAt).toLocaleTimeString();
+    div.innerHTML = '<span class="sender">' + msg.sender.pseudonym + '</span> <span class="time">' + time + '</span><br>' + msg.text;
+    messagesDiv.appendChild(div);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  async function loadHistory() {
+    const token = document.getElementById('token').value;
+    const talentId = document.getElementById('talentId').value;
+    
+    console.log('Loading history for talent:', talentId);
+    
+    const res = await fetch('/api/talents/messages/my', {
+      headers: { 'Authorization': token }
+    });
+    const data = await res.json();
+    
+    console.log('History response:', data);
+    
+    if (data.success && data.data.length > 0) {
+      document.getElementById('messages').innerHTML = '';
+      
+      const relevantMessages = data.data.filter(msg => {
+        const tId = typeof msg.talent === 'object' ? msg.talent._id : msg.talent;
+        return tId === talentId;
+      });
+      
+      console.log('Relevant messages:', relevantMessages.length);
+      
+      relevantMessages.reverse().forEach(msg => {
+        addMessageToChat({
+          _id: msg._id,
+          sender: msg.sender,
+          text: msg.text,
+          createdAt: msg.createdAt
+        });
+      });
+    }
+  }
+
+  async function sendMessage() {
+    const text = document.getElementById('messageText').value;
+    const talentId = document.getElementById('talentId').value;
+    const token = document.getElementById('token').value;
+
+    if (!text) return;
+
+    console.log('Sending message to talent:', talentId);
+
+    const res = await fetch('/api/talents/' + talentId + '/contact', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ text: text })
+    });
+
+    const data = await res.json();
+    console.log('Send response:', data);
+    
+    if (data.success) {
+      document.getElementById('messageText').value = '';
+    }
+  }
+</script>
+</body>
+</html>

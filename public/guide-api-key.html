@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>📋 Comment trouver ta Web API Key</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 { color: #d32f2f; font-size: 28px; }
+    .step {
+      background: white;
+      margin: 20px 0;
+      padding: 20px;
+      border-left: 4px solid #2196F3;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .step h2 {
+      color: #2196F3;
+      font-size: 18px;
+      margin-top: 0;
+    }
+    .step p { margin: 10px 0; font-size: 15px; }
+    .code {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      overflow-x: auto;
+      border-left: 2px solid #ff9800;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover { background: #45a049; }
+    .warning {
+      background: #fff3cd;
+      border-left-color: #ffc107;
+      border: 1px solid #ffc107;
+      color: #856404;
+    }
+    .success {
+      background: #d4edda;
+      border-left-color: #28a745;
+      border: 1px solid #28a745;
+      color: #155724;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Guide: Trouver ta Web API Key Firebase</h1>
+
+  <div class="step">
+    <h2>Étape 1: Ouvre Firebase Console</h2>
+    <p>Va à cette URL:</p>
+    <div class="code">https://console.firebase.google.com/project/hivoraa-323d9/settings/general</div>
+    <button onclick="window.open('https://console.firebase.google.com/project/hivoraa-323d9/settings/general', '_blank')">
+      Ouvrir Firebase Console →
+    </button>
+  </div>
+
+  <div class="step">
+    <h2>Étape 2: Va à "Project Settings"</h2>
+    <p>En haut à droite, clique sur l'icône ⚙️ (paramètres) → <strong>Project Settings</strong></p>
+  </div>
+
+  <div class="step">
+    <h2>Étape 3: Scroll jusqu'à "Your apps"</h2>
+    <p>Tu verras une section "Your apps" avec:</p>
+    <div class="code">
+hivoraa-323d9
+Web
+SDK setup and configuration
+    </div>
+  </div>
+
+  <div class="step">
+    <h2>Étape 4: Clique sur "Web"</h2>
+    <p>Ou cherche le bloc qui commence par:</p>
+    <div class="code">const firebaseConfig = {
+  apiKey: "AIzaSy...", ← C'EST CETTE CLÉ!
+  authDomain: "hivoraa-323d9.firebaseapp.com",
+  ...
+}</div>
+  </div>
+
+  <div class="step">
+    <h2>Étape 5: Copie ta clé complète</h2>
+    <p>La clé ressemblera à:</p>
+    <div class="code">AIzaSyD_XXXXXXXXXXXXXXXXXXXXXX_XXXXXXXXXXXX</div>
+    <p>Elle commence toujours par <strong>AIzaSy</strong></p>
+  </div>
+
+  <div class="step success">
+    <h2>✅ Maintenant, mets-la dans debug.html</h2>
+    <p>Édite <strong>/public/debug.html</strong> ligne ~27:</p>
+    <div class="code">const firebaseConfig = {
+  apiKey: "AIzaSyD_XXXXXXXXXXXXXXXXXXXXXX_XXXXXXXXXXXX", // ← Remplace
+  authDomain: "hivoraa-323d9.firebaseapp.com",
+  projectId: "hivoraa-323d9",
+};</div>
+  </div>
+
+  <div class="step warning">
+    <h2>⚠️ Important</h2>
+    <ul>
+      <li><strong>Jamais</strong> utilise ta clé Admin SDK (celle dans .env) côté client</li>
+      <li>La Web API Key est <strong>publique</strong>, c'est normal</li>
+      <li>Après avoir changé la clé, recharge http://localhost:5000/debug.html</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <h2>Toujours pas d'API Key?</h2>
+    <p>Si tu ne vois pas "Your apps", c'est peut-être que tu n'as pas créé d'app Web. Va à:</p>
+    <button onclick="window.open('https://console.firebase.google.com/project/hivoraa-323d9/overview', '_blank')">
+      Firebase Console - Overview →
+    </button>
+    <p>Et crée une nouvelle app Web</p>
+  </div>
+</body>
+</html>
