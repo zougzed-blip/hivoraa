@@ -7,6 +7,7 @@ const {
   likeTalent,
   contactTalent,
   getMyMessages,
+  getTalentMessages,
   deleteTalent
 } = require('../controllers/talentController');
 const { protect } = require('../middleware/auth');
@@ -20,6 +21,7 @@ router.post('/', protect, createTalent);
 router.post('/:id/like', protect, likeTalent);
 router.post('/:id/contact', protect, contactTalent);
 router.get('/messages/my', protect, getMyMessages);
+router.get('/:id/messages', protect, getTalentMessages);
 router.delete('/:id', protect, deleteTalent);
 
 module.exports = router;

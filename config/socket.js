@@ -40,6 +40,9 @@ const initSocket = (server) => {
     socket.on('disconnect', () => {
       console.log('User disconnected:', socket.id);
     });
+    socket.on('joinTalent', (talentId) => {
+  socket.join(`talent-${talentId}`);
+});
   });
 
   return io;

@@ -1,0 +1,79 @@
+.trust-rooms-grid { display: flex; flex-direction: column; gap: 12px; }
+
+    .trust-room-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 18px 20px;
+      cursor: pointer; transition: border-color var(--transition);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .trust-room-card:hover { border-color: var(--border-light); }
+    .trust-room-left { flex: 1; min-width: 0; }
+    .trust-room-title { font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 4px; }
+    .trust-room-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+    .trust-room-meta { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+    .trust-room-badge {
+      font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 10px;
+      background: var(--accent-10); color: var(--accent);
+    }
+    .trust-room-arrow { color: var(--text-muted); flex-shrink: 0; }
+
+    /* Detail panel */
+    .trust-detail-panel {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden;
+    }
+    .trust-detail-back {
+      background: none; border: none; color: var(--text-secondary);
+      font-size: 12px; cursor: pointer; padding: 14px 18px;
+      font-family: var(--font); width: 100%; text-align: left;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .trust-detail-back:hover { color: var(--text-primary); }
+    .trust-detail-header { padding: 16px 18px; border-bottom: 1px solid var(--border); }
+    .trust-detail-header h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .trust-detail-desc { font-size: 11px; color: var(--text-muted); }
+
+    /* Messages */
+    .trust-messages-list { padding: 16px 18px; max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .trust-message-card { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .trust-message-card:last-child { border-bottom: none; }
+    .trust-msg-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .trust-msg-pseudo { font-size: 12px; font-weight: 600; color: var(--accent); }
+    .trust-msg-time { font-size: 10px; color: var(--text-muted); }
+    .trust-msg-text { font-size: 12px; color: var(--text-primary); line-height: 1.5; }
+    .trust-msg-bottom { margin-top: 6px; }
+    .trust-like-btn {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 10px; color: var(--text-muted);
+      background: none; border: none; cursor: pointer;
+      font-family: var(--font); padding: 0; transition: color var(--transition);
+    }
+    .trust-like-btn:hover { color: var(--text-secondary); }
+    .trust-like-btn.liked { color: var(--red); }
+
+    /* Post form */
+    .trust-post-form { padding: 16px 18px; border-top: 1px solid var(--border); }
+    .trust-post-form input {
+      width: 100%; padding: 8px 12px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text-primary); font-size: 12px; font-family: var(--font);
+      outline: none; margin-bottom: 8px;
+    }
+    .trust-post-form textarea {
+      width: 100%; padding: 8px 12px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text-primary); font-size: 12px; font-family: var(--font);
+      outline: none; resize: vertical; min-height: 70px; margin-bottom: 8px;
+    }
+    .trust-post-btn {
+      padding: 8px 20px; background: var(--text-secondary); color: var(--bg);
+      border: none; border-radius: var(--radius); font-size: 12px;
+      font-weight: 600; cursor: pointer; font-family: var(--font);
+      transition: opacity var(--transition);
+    }
+    .trust-post-btn:hover { opacity: 0.85; }
+
+    @media (max-width: 768px) {
+      .trust-room-card { padding: 14px; }
+    }

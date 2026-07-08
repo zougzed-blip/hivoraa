@@ -18,7 +18,7 @@ const uploadToCloudinary = (file) => {
 
 // Validation rules
 const validateCreate = [
-  body('course').isMongoId().withMessage('Invalid course ID.'),
+  body('course').trim().notEmpty().withMessage('Course is required.'),
   body('title').trim().isLength({ min: 3, max: 200 }).escape(),
   body('type').isIn(['pdf', 'video', 'link', 'image']).withMessage('Invalid type.')
 ];
@@ -33,24 +33,40 @@ const createResource = async (req, res, next) => {
 
     const { course, title, type, link } = req.body;
 
-    const courseExists = await Course.findById(course);
-    if (!courseExists) {
-      return res.status(404).json({ success: false, message: 'Course not found.' });
+    // Find or create course
+    let finalCourseId = course;
+    if (course.match(/^[0-9a-fA-F]{24}$/)) {
+      const courseExists = await Course.findById(course);
+      if (!courseExists) {
+        return res.status(404).json({ success: false, message: 'Course not found.' });
+      }
+    } else {
+      let courseDoc = await Course.findOne({ code: course.toUpperCase() });
+      if (!courseDoc) {
+        courseDoc = await Course.create({
+          code: course.toUpperCase(),
+          name: course.toUpperCase(),
+          school: 'User Added',
+          year: 1,
+          semester: 'A'
+        });
+      }
+      finalCourseId = courseDoc._id;
     }
 
     let fileUrl;
 
     if (req.file) {
       fileUrl = await uploadToCloudinary(req.file);
-    } else if (link) {
-      fileUrl = link;
+    } else if (link && link.trim() !== '') {
+      fileUrl = link.trim();
     } else {
       return res.status(400).json({ success: false, message: 'File or link required.' });
     }
 
     const resource = await Resource.create({
       uploader: req.user._id,
-      course,
+      course: finalCourseId,
       title,
       type,
       fileUrl

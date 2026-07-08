@@ -20,7 +20,7 @@ const uploadToCloudinary = (file, folder, resourceType = 'image') => {
 
 // Validation rules
 const validateCreate = [
-  body('course').isMongoId().withMessage('Invalid course ID.'),
+   body('course').trim().notEmpty().withMessage('Course is required.'),
   body('topic').trim().isLength({ min: 3, max: 200 }).escape(),
   body('location').trim().isLength({ min: 2, max: 200 }).escape(),
   body('dateTime').isISO8601().withMessage('Invalid date.'),
@@ -37,14 +37,31 @@ const createStudyGroup = async (req, res, next) => {
 
     const { course, topic, location, dateTime, maxParticipants } = req.body;
 
-    const courseExists = await Course.findById(course);
-    if (!courseExists) {
-      return res.status(404).json({ success: false, message: 'Course not found.' });
+    // Trouver ou créer le cours
+    let finalCourseId = course;
+
+    if (course.match(/^[0-9a-fA-F]{24}$/)) {
+      const courseExists = await Course.findById(course);
+      if (!courseExists) {
+        return res.status(404).json({ success: false, message: 'Course not found.' });
+      }
+    } else {
+      let courseDoc = await Course.findOne({ code: course.toUpperCase() });
+      if (!courseDoc) {
+        courseDoc = await Course.create({
+          code: course.toUpperCase(),
+          name: course.toUpperCase(),
+          school: 'User Added',
+          year: 1,
+          semester: 'A'
+        });
+      }
+      finalCourseId = courseDoc._id;
     }
 
     const studyGroup = await StudyGroup.create({
       creator: req.user._id,
-      course,
+      course: finalCourseId,
       topic,
       location,
       dateTime,
@@ -75,6 +92,7 @@ const getAllStudyGroups = async (req, res, next) => {
       .populate('creator', 'pseudonym')
       .populate('course', 'code name year semester')
       .populate('participants', 'pseudonym')
+       .populate('messages.sender', 'pseudonym') 
       .sort({ dateTime: 1 });
 
     res.status(200).json({ success: true, count: studyGroups.length, data: studyGroups });

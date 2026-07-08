@@ -1,0 +1,11 @@
+:root {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --background: #0f172a;
+  --surface: #111827;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --border: #334155;
+}

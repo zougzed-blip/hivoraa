@@ -18,7 +18,7 @@ const uploadToCloudinary = (file, folder) => {
 
 // Validation rules
 const validateCreate = [
-  body('course').isMongoId().withMessage('Invalid course ID.'),
+  body('course').trim().notEmpty().withMessage('Course is required.'),
   body('title').trim().isLength({ min: 3, max: 150 }).escape(),
   body('content').trim().isLength({ min: 5, max: 3000 }).escape(),
   body('deadline').isISO8601().withMessage('Invalid date format.'),
@@ -34,7 +34,6 @@ const validateReply = [
   body('isAnonymous').optional().isBoolean()
 ];
 
-// Create help request
 const createHelpRequest = async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -44,9 +43,29 @@ const createHelpRequest = async (req, res, next) => {
 
     const { course, title, content, deadline, isAnonymous } = req.body;
 
-    const courseExists = await Course.findById(course);
-    if (!courseExists) {
-      return res.status(404).json({ success: false, message: 'Course not found.' });
+    // Find or create course
+    let finalCourseId = course;
+    
+    // Check if course is a valid ObjectId (24 hex chars)
+    if (course.match(/^[0-9a-fA-F]{24}$/)) {
+      const courseExists = await Course.findById(course);
+      if (!courseExists) {
+        return res.status(404).json({ success: false, message: 'Course not found.' });
+      }
+    } else {
+      // Course is a code like "WEB401"
+      let courseDoc = await Course.findOne({ code: course.toUpperCase() });
+      if (!courseDoc) {
+        // Create new course
+        courseDoc = await Course.create({
+          code: course.toUpperCase(),
+          name: course.toUpperCase(),
+          school: 'User Added',
+          year: 1,
+          semester: 'A'
+        });
+      }
+      finalCourseId = courseDoc._id;
     }
 
     let images = [];
@@ -60,7 +79,7 @@ const createHelpRequest = async (req, res, next) => {
     const helpRequest = await HelpRequest.create({
       author: req.user ? req.user._id : null,
       isAnonymous: isAnonymous || false,
-      course,
+      course: finalCourseId,
       title,
       content,
       deadline,
@@ -83,11 +102,22 @@ const createHelpRequest = async (req, res, next) => {
 // Get all help requests
 const getAllHelpRequests = async (req, res, next) => {
   try {
-    const { course, sort, search, year, semester, limit = 50, page = 1 } = req.query;
+    const { course, sort, search, year, semester, page = 1, limit = 50 } = req.query;
 
     let filter = {};
 
-    if (course) filter.course = course;
+    if (course) {
+      if (course.match(/^[0-9a-fA-F]{24}$/)) {
+        filter.course = course;
+      } else {
+        const courseDoc = await Course.findOne({ code: course.toUpperCase() });
+        if (courseDoc) {
+          filter.course = courseDoc._id;
+        } else {
+          return res.status(200).json({ success: true, count: 0, total: 0, page: 1, pages: 0, data: [] });
+        }
+      }
+    }
 
     if (year || semester) {
       const courseFilter = {};
@@ -98,8 +128,12 @@ const getAllHelpRequests = async (req, res, next) => {
     }
 
     if (search) {
-      filter.$text = { $search: search };
-    }
+  const regex = new RegExp(search, 'i');
+  filter.$or = [
+    { title: regex },
+    { content: regex }
+  ];
+}
 
     let sortOption = { createdAt: -1 };
     if (sort === 'deadline') sortOption = { deadline: 1 };
@@ -110,6 +144,7 @@ const getAllHelpRequests = async (req, res, next) => {
     const helpRequests = await HelpRequest.find(filter)
       .populate('author', 'pseudonym')
       .populate('course', 'code name year semester school')
+      .populate('replies.author', 'pseudonym')
       .sort(sortOption)
       .skip(skip)
       .limit(parseInt(limit));

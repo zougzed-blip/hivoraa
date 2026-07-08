@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -31,16 +32,7 @@ app.use(morgan('dev'));
 app.use('/api', limiter);
 app.use(express.static('public'));
 
-app.get('/', (req, res) => {
-  const mongoose = require('mongoose');
-  res.json({
-    success: true,
-    message: 'Hivoraa API en ligne',
-    firebase: 'Connecte',
-    mongo: mongoose.connection.readyState === 1 ? 'Connecte' : 'Deconnecte'
-  });
-});
-
+// ========== API ROUTES ==========
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/firebase', require('./routes/firebase'));
 app.use('/api/help-requests', require('./routes/helpRequests'));
@@ -51,6 +43,18 @@ app.use('/api/resources', require('./routes/resources'));
 app.use('/api/talents', require('./routes/talents'));
 app.use('/api/trust-circle', require('./routes/trustCircle'));
 app.use('/api/listening-chamber', require('./routes/listeningChamber'));
+
+
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/study-groups', (req, res) => res.sendFile(path.join(__dirname, 'public', 'groups.html')));
+app.get('/resources', (req, res) => res.sendFile(path.join(__dirname, 'public', 'resources.html')));
+app.get('/talents', (req, res) => res.sendFile(path.join(__dirname, 'public', 'talents.html')));
+app.get('/trust-circle', (req, res) => res.sendFile(path.join(__dirname, 'public', 'trust-circle.html')));
+app.get('/listening-chamber', (req, res) => res.sendFile(path.join(__dirname, 'public', 'listening-chamber.html')));
+app.get('/saved', (req, res) => res.sendFile(path.join(__dirname, 'public', 'saved.html')));
+app.get('/profile', (req, res) => res.sendFile(path.join(__dirname, 'public', 'profile.html')));
+app.get('/auth-test', (req, res) => res.sendFile(path.join(__dirname, 'public', 'auth-test.html')));
 
 app.use(errorHandler);
 

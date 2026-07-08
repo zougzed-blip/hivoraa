@@ -117,26 +117,25 @@ const contactTalent = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Talent not found.' });
     }
 
-    // Determine receiver
-    let receiverId;
-    const isSelfContact = talent.user._id.toString() === req.user._id.toString();
+    const isOwner = talent.user._id.toString() === req.user._id.toString();
 
-    if (isSelfContact) {
-      // Owner is replying: find the last person who messaged them about this talent
-      const lastMessage = await Message.findOne({
+    // Si ce n'est pas le propriétaire, limiter à 2 messages
+    if (!isOwner) {
+      const userMessageCount = await Message.countDocuments({
         talent: talent._id,
-        receiver: req.user._id
-      }).sort({ createdAt: -1 });
-
-      receiverId = lastMessage ? lastMessage.sender : req.user._id;
-    } else {
-      // Someone is contacting the talent owner
-      receiverId = talent.user._id;
+        sender: req.user._id
+      });
+      if (userMessageCount >= 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'You can only send 2 messages. Wait for the owner to reply.'
+        });
+      }
     }
 
     const message = await Message.create({
       sender: req.user._id,
-      receiver: receiverId,
+      receiver: talent.user._id,
       talent: talent._id,
       text
     });
@@ -151,29 +150,38 @@ const contactTalent = async (req, res, next) => {
       createdAt: message.createdAt
     };
 
-    // Emit to BOTH users
+    // Émettre à tous ceux qui regardent ce talent
     const io = getIO();
-    io.to(`user-${receiverId}`).emit('newMessage', messageData);
-    io.to(`user-${req.user._id}`).emit('newMessage', messageData);
+    io.to(`talent-${talent._id}`).emit('newMessage', messageData);
 
-    // Email on first message only
-    const messageCount = await Message.countDocuments({
-      sender: req.user._id,
-      receiver: receiverId,
-      talent: talent._id
-    });
-
-    if (messageCount === 1 && !isSelfContact && talent.user.email) {
-      sendEmailNotification(
-        talent.user.email,
-        'Hivoraa - New message',
-        `<h3>You have a new message!</h3>
-         <p><b>${req.user.pseudonym}</b> is interested in your talent: <b>${talent.skillOffered}</b></p>
-         <p>Log in to Hivoraa to reply.</p>`
-      );
+    // Email au propriétaire
+    if (!isOwner && talent.user.email) {
+      const totalMessages = await Message.countDocuments({ talent: talent._id, receiver: talent.user._id });
+      if (totalMessages === 1) {
+        sendEmailNotification(
+          talent.user.email,
+          'Hivoraa - New message on your talent',
+          `<h3>Someone left a message!</h3>
+           <p><b>${req.user.pseudonym}</b> is interested in your talent: <b>${talent.skillOffered}</b></p>
+           <p>Log in to Hivoraa to reply.</p>`
+        );
+      }
     }
 
     res.status(201).json({ success: true, message: 'Message sent.', data: message });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getTalentMessages = async (req, res, next) => {
+  try {
+    const messages = await Message.find({ talent: req.params.id })
+      .populate('sender', 'pseudonym')
+      .populate('talent', 'skillOffered')
+      .sort({ createdAt: 1 });
+
+    res.status(200).json({ success: true, count: messages.length, data: messages });
   } catch (error) {
     next(error);
   }
@@ -225,5 +233,6 @@ module.exports = {
   likeTalent,
   contactTalent,
   getMyMessages,
+  getTalentMessages,
   deleteTalent
 };

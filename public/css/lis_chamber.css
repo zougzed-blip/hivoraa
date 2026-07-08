@@ -1,0 +1,108 @@
+ /* Entry Gate */
+    .chamber-gate { text-align: center; padding: 40px 20px; }
+    .chamber-gate-icon { margin-bottom: 20px; color: var(--text-muted); }
+    .chamber-gate-icon svg { width: 48px; height: 48px; }
+    .chamber-gate-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+    .chamber-gate-subtitle { font-size: 12px; color: var(--text-secondary); margin-bottom: 28px; line-height: 1.6; max-width: 400px; margin-left: auto; margin-right: auto; }
+    .chamber-btn-enter {
+      padding: 10px 32px; background: var(--text-secondary); color: var(--bg);
+      border: none; border-radius: var(--radius); font-size: 13px;
+      font-weight: 600; cursor: pointer; font-family: var(--font);
+      transition: opacity var(--transition);
+    }
+    .chamber-btn-enter:hover { opacity: 0.85; }
+    .chamber-text-link {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 11px; cursor: pointer; font-family: var(--font);
+      margin-top: 16px; text-decoration: underline;
+    }
+    .chamber-text-link:hover { color: var(--text-secondary); }
+
+    /* Doors */
+    .chamber-doors-list { display: flex; flex-direction: column; gap: 10px; }
+    .chamber-door-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px 18px;
+      cursor: pointer; transition: border-color var(--transition);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .chamber-door-card:hover { border-color: var(--border-light); }
+    .chamber-door-number {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--accent-10); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; flex-shrink: 0;
+    }
+    .chamber-door-info { flex: 1; min-width: 0; }
+    .chamber-door-name { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 2px; }
+    .chamber-door-desc { font-size: 11px; color: var(--text-secondary); }
+    .chamber-door-arrow { color: var(--text-muted); flex-shrink: 0; }
+
+    /* Submit panel */
+    .chamber-submit-panel { padding: 8px 0; }
+    .chamber-back-btn {
+      background: none; border: none; color: var(--text-secondary);
+      font-size: 12px; cursor: pointer; padding: 0 0 16px;
+      font-family: var(--font); display: flex; align-items: center; gap: 6px;
+    }
+    .chamber-back-btn:hover { color: var(--text-primary); }
+    .chamber-panel-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+    .chamber-panel-subtitle { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; }
+    .chamber-textarea {
+      width: 100%; padding: 12px; background: var(--card-bg);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text-primary); font-size: 12px; font-family: var(--font);
+      outline: none; resize: vertical; min-height: 120px; margin-bottom: 12px;
+    }
+    .chamber-textarea:focus { border-color: var(--border-light); }
+    .chamber-submit-btn {
+      width: 100%; padding: 10px; background: var(--text-secondary); color: var(--bg);
+      border: none; border-radius: var(--radius); font-size: 13px;
+      font-weight: 600; cursor: pointer; font-family: var(--font);
+    }
+    .chamber-submit-btn:hover { opacity: 0.85; }
+
+    /* Code display */
+    .chamber-code-panel { text-align: center; padding: 30px 20px; }
+    .chamber-code-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; }
+    .chamber-code-value {
+      display: inline-block; font-size: 18px; font-weight: 700;
+      letter-spacing: 1px; color: var(--accent);
+      background: var(--card-bg); border: 1px solid var(--border);
+      padding: 10px 20px; border-radius: var(--radius); margin-bottom: 12px;
+    }
+    .chamber-code-warning { font-size: 11px; color: var(--yellow); margin-bottom: 16px; max-width: 350px; margin-left: auto; margin-right: auto; }
+    .chamber-btn-copy {
+      padding: 8px 20px; background: var(--card-hover); color: var(--text-primary);
+      border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px;
+      font-weight: 500; cursor: pointer; font-family: var(--font); margin-bottom: 12px;
+    }
+    .chamber-btn-copy:hover { border-color: var(--text-muted); }
+
+    /* Check panel */
+    .chamber-check-panel { padding: 8px 0; }
+    .chamber-check-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .chamber-check-input {
+      flex: 1; padding: 10px 14px; background: var(--card-bg);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text-primary); font-size: 13px; font-family: var(--font); outline: none;
+    }
+    .chamber-check-input:focus { border-color: var(--border-light); }
+    .chamber-btn-check {
+      padding: 10px 20px; background: var(--text-secondary); color: var(--bg);
+      border: none; border-radius: var(--radius); font-size: 12px;
+      font-weight: 600; cursor: pointer; font-family: var(--font);
+    }
+    .chamber-btn-check:hover { opacity: 0.85; }
+    .chamber-response-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px 18px;
+    }
+    .chamber-response-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--green); margin-bottom: 8px; }
+    .chamber-response-text { font-size: 12px; color: var(--text-primary); line-height: 1.6; margin-bottom: 8px; }
+    .chamber-response-meta { font-size: 10px; color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .chamber-door-card { padding: 14px; }
+      .chamber-gate { padding: 20px 10px; }
+    }
