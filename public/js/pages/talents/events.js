@@ -23,7 +23,7 @@ var TLEvents = {
     if (signInBtn) signInBtn.addEventListener('click', function() { window.location.href = '/auth-test.html'; });
 
     var signOutBtn = document.getElementById('sign-out-link');
-    if (signOutBtn) signOutBtn.addEventListener('click', function() { Auth.logout(); });
+    if (signOutBtn) signOutBtn.addEventListener('click', function() { Auth.showLogoutConfirm(); });
 
     var hamburger = document.getElementById('hamburger-btn');
     var sidebar = document.getElementById('sidebar');
@@ -77,12 +77,12 @@ var TLEvents = {
     TLState.socket = io(CONFIG.SOCKET_URL);
 
     var self = this;
+    // Ne rafraîchit que si on est bien DANS une conversation ouverte
+    // (pas sur la vue liste, pas sur le mur des talents).
     TLState.socket.on('newMessage', function(msg) {
-      if (TLState.currentChatId) {
-        var tId = msg.talent ? (msg.talent._id || msg.talent) : null;
-        if (tId === TLState.currentChatId) {
-          self.refreshChatMessages();
-        }
+      var tId = msg.talent ? (msg.talent._id || msg.talent) : null;
+      if (TLState.currentChatId && TLState.currentChatUserId && tId === TLState.currentChatId) {
+        self.refreshChatMessages();
       }
     });
   },
@@ -124,61 +124,183 @@ var TLEvents = {
     if (res.success) { Toast.show('Deleted'); TLFeed.fetch(); }
   },
 
-  openChat: function(id) {
-    var t = TLState.talents.find(function(t) { return t._id === id; });
-    if (!t) return;
+  // PROPRIÉTAIRE : ouvre la liste des conversations (boîte de réception) d'un talent
+  openConversationsList: async function(talentId) {
+    if (!Auth.isLoggedIn()) { Toast.show('Sign in required'); return; }
 
-    TLState.currentChatId = id;
+    this.leaveCurrentConversation();
+    TLState.currentChatId = talentId;
+    TLState.currentChatUserId = null;
+    TLState.isOwnerView = true;
 
-    if (TLState.socket) {
-      TLState.socket.emit('joinTalent', id);
+    document.getElementById('talents-container').innerHTML = '';
+    var chatContainer = document.getElementById('chat-container');
+    chatContainer.innerHTML =
+      '<div class="chat-panel">' +
+        '<div class="chat-panel-header"><h3>Messages</h3><button class="action-btn" id="close-chat">Back</button></div>' +
+        '<div class="chat-list" id="chat-list"><div style="text-align:center;color:var(--text-muted);padding:20px;">Loading...</div></div>' +
+      '</div>';
+
+    document.getElementById('close-chat').addEventListener('click', function() {
+      TLEvents.closeChat();
+    });
+
+    var res = await API.get('/talents/' + talentId + '/conversations');
+    var listEl = document.getElementById('chat-list');
+    if (!listEl) return;
+
+    if (res.success && res.data && res.data.length) {
+      TLState.conversations = res.data;
+      listEl.innerHTML = '';
+      res.data.forEach(function(c) {
+        var item = document.createElement('div');
+        item.className = 'chat-list-item';
+        var pseudo = c.user && c.user.pseudonym ? c.user.pseudonym : 'Unknown';
+        item.innerHTML =
+          '<div class="chat-list-avatar">' + KSSecurity.esc(pseudo.charAt(0).toUpperCase()) + '</div>' +
+          '<div class="chat-list-info">' +
+            '<div class="chat-list-name">' + KSSecurity.esc(pseudo) + '</div>' +
+            '<div class="chat-list-preview">' + KSSecurity.esc((c.lastMessage || '').substring(0, 40)) + '</div>' +
+          '</div>' +
+          '<div class="chat-list-time">' + Utils.timeAgo(c.lastMessageAt) + '</div>';
+        item.addEventListener('click', function() {
+          TLEvents.openConversation(talentId, c.user._id, pseudo);
+        });
+        listEl.appendChild(item);
+      });
+    } else {
+      listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;">No messages yet.</div>';
+    }
+  },
+
+  // Ouvre UN fil de discussion précis (1-à-1). Utilisé par le propriétaire
+  // (depuis la liste) ET par un non-propriétaire (bouton Contact direct).
+  openConversation: function(talentId, otherUserId, otherUserName) {
+    if (!Auth.isLoggedIn()) { Toast.show('Sign in to message'); return; }
+
+    var t = TLState.talents.find(function(tt) { return tt._id === talentId; });
+    var isOwner = false;
+
+    if (t) {
+      var user = Auth.getUser();
+      var userId = user ? (user.id || user._id) : null;
+      var ownerId = t.user ? (typeof t.user === 'object' ? (t.user._id || t.user.id) : t.user) : null;
+      isOwner = !!(userId && ownerId && userId === ownerId);
+
+      // Non-propriétaire qui clique "Contact" : l'interlocuteur est le propriétaire
+      if (!otherUserId) {
+        otherUserId = ownerId;
+        otherUserName = otherUserName || (typeof t.user === 'object' ? t.user.pseudonym : 'Unknown');
+      }
     }
 
-    var userName = t.user ? (typeof t.user === 'object' ? t.user.pseudonym : t.user) : 'Unknown';
+    this.leaveCurrentConversation();
+
+    TLState.isOwnerView = isOwner;
+    TLState.currentChatId = talentId;
+    TLState.currentChatUserId = otherUserId;
+
+    if (TLState.socket) {
+      var currentUser = Auth.getUser();
+      var currentUserId = currentUser ? (currentUser.id || currentUser._id) : null;
+      TLState.socket.emit('joinTalentConversation', {
+        talentId: talentId,
+        currentUserId: currentUserId,
+        otherUserId: otherUserId
+      });
+    }
+
+    var backLabel = isOwner ? 'Back to inbox' : 'Back';
 
     document.getElementById('talents-container').innerHTML = '';
     document.getElementById('chat-container').innerHTML =
       '<div class="chat-panel">' +
-        '<div class="chat-panel-header"><h3>' + KSSecurity.esc(userName) + ' - ' + KSSecurity.esc(t.skillOffered || '') + '</h3><button class="action-btn" id="close-chat">Back</button></div>' +
+        '<div class="chat-panel-header"><h3>' + KSSecurity.esc(otherUserName || 'Conversation') + (t ? ' - ' + KSSecurity.esc(t.skillOffered || '') : '') + '</h3><button class="action-btn" id="close-chat">' + backLabel + '</button></div>' +
         '<div class="chat-messages" id="chat-messages"><div style="text-align:center;color:var(--text-muted);padding:20px;">Loading...</div></div>' +
-        '<div class="chat-input-row"><input class="chat-input" id="chat-input" placeholder="Leave a message (max 2)..."><button class="send-btn" id="send-chat">Send</button></div>' +
+        '<div class="chat-input-row"><input class="chat-input" id="chat-input" placeholder="' + (isOwner ? 'Reply...' : 'Leave a message (max 2)...') + '"><button class="send-btn" id="send-chat">Send</button></div>' +
       '</div>';
 
     document.getElementById('close-chat').addEventListener('click', function() {
-      TLState.currentChatId = null;
-      document.getElementById('chat-container').innerHTML = '';
-      TLFeed.render();
+      if (isOwner) {
+        TLEvents.openConversationsList(talentId);
+      } else {
+        TLEvents.closeChat();
+      }
     });
 
-    document.getElementById('send-chat').addEventListener('click', async function() {
-      var input = document.getElementById('chat-input');
-      var text = input.value.trim();
-      if (!text) return;
-      if (!Auth.isLoggedIn()) { Toast.show('Sign in to message'); return; }
-      var res = await API.post('/talents/' + id + '/contact', { text: KSSecurity.sanitize(text) });
-      if (res.success) {
-        input.value = '';
-        TLEvents.refreshChatMessages();
-      } else {
-        Toast.show(res.message || 'Failed to send');
-      }
+    document.getElementById('send-chat').addEventListener('click', function() {
+      TLEvents.sendMessage();
+    });
+    document.getElementById('chat-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') TLEvents.sendMessage();
     });
 
     this.refreshChatMessages();
   },
 
+  sendMessage: async function() {
+    var input = document.getElementById('chat-input');
+    if (!input) return;
+    var text = input.value.trim();
+    if (!text) return;
+    if (!Auth.isLoggedIn()) { Toast.show('Sign in to message'); return; }
+
+    var body = { text: KSSecurity.sanitize(text) };
+    // Le backend exige receiverId quand c'est le propriétaire qui répond,
+    // pour savoir dans quel fil classer le message.
+    if (TLState.isOwnerView) {
+      body.receiverId = TLState.currentChatUserId;
+    }
+
+    var res = await API.post('/talents/' + TLState.currentChatId + '/contact', body);
+    if (res.success) {
+      input.value = '';
+      TLEvents.refreshChatMessages();
+    } else {
+      Toast.show(res.message || 'Failed to send');
+    }
+  },
+
   refreshChatMessages: async function() {
     var chatArea = document.getElementById('chat-messages');
-    if (!chatArea) return;
+    if (!chatArea || !TLState.currentChatId || !TLState.currentChatUserId) return;
 
-    var msgRes = await API.get('/talents/' + TLState.currentChatId + '/messages');
+    var endpoint = '/talents/' + TLState.currentChatId + '/messages?with=' + encodeURIComponent(TLState.currentChatUserId);
+    var msgRes = await API.get(endpoint);
+
+    var currentUser = Auth.getUser();
+    var myId = currentUser ? (currentUser.id || currentUser._id) : null;
+
     if (msgRes.success && msgRes.data) {
       chatArea.innerHTML = msgRes.data.length ? msgRes.data.map(function(m) {
+        var senderId = typeof m.sender === 'object' ? (m.sender._id || m.sender.id) : m.sender;
         var sender = typeof m.sender === 'object' ? (m.sender.pseudonym || 'Unknown') : 'Anonymous';
-        return '<div class="chat-msg"><div class="msg-header"><span class="msg-sender">' + KSSecurity.esc(sender) + '</span><span class="msg-time">' + Utils.timeAgo(m.createdAt) + '</span></div><div class="msg-text">' + KSSecurity.esc(m.text) + '</div></div>';
+        var isOwn = !!(myId && senderId === myId);
+        return '<div class="chat-msg' + (isOwn ? ' own' : '') + '"><div class="msg-header"><span class="msg-sender">' + KSSecurity.esc(sender) + '</span><span class="msg-time">' + Utils.timeAgo(m.createdAt) + '</span></div><div class="msg-text">' + KSSecurity.esc(m.text) + '</div></div>';
       }).join('') : '<div style="text-align:center;color:var(--text-muted);padding:20px;">No messages yet.</div>';
       chatArea.scrollTop = chatArea.scrollHeight;
     }
+  },
+
+  leaveCurrentConversation: function() {
+    if (TLState.socket && TLState.currentChatId && TLState.currentChatUserId) {
+      var currentUser = Auth.getUser();
+      var currentUserId = currentUser ? (currentUser.id || currentUser._id) : null;
+      TLState.socket.emit('leaveTalentConversation', {
+        talentId: TLState.currentChatId,
+        currentUserId: currentUserId,
+        otherUserId: TLState.currentChatUserId
+      });
+    }
+  },
+
+  closeChat: function() {
+    this.leaveCurrentConversation();
+    TLState.currentChatId = null;
+    TLState.currentChatUserId = null;
+    TLState.isOwnerView = false;
+    document.getElementById('chat-container').innerHTML = '';
+    TLFeed.render();
   },
 
   initTheme: function() {

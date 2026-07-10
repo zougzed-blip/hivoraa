@@ -9,7 +9,7 @@ const {
   getStats,
   respondToReport
 } = require('../controllers/listeningChamberController');
-const { protect } = require('../middleware/auth');
+const { protect, hasRole } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
 
 const reportLimiter = rateLimit({
@@ -18,13 +18,21 @@ const reportLimiter = rateLimit({
   message: { success: false, message: 'Max 5 reports per hour.' }
 });
 
+const checkCodeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: 'Too many attempts. Try again later.' }
+});
+
 // Fully public
 router.get('/doors', getDoors);
 router.post('/submit', reportLimiter, validateReport, submitReport);
-router.get('/check/:code', checkReport);
+router.get('/check/:code', checkCodeLimiter, checkReport);
 
-// Admin only
-router.get('/stats', protect, getStats);
-router.put('/respond/:code', protect, validateResponse, respondToReport);
+// Stats globales : admin uniquement
+router.get('/stats', protect, hasRole('admin'), getStats);
+
+// Répondre à un signalement : admin + moderator
+router.put('/respond/:code', protect, hasRole('admin', 'moderator'), validateResponse, respondToReport);
 
 module.exports = router;

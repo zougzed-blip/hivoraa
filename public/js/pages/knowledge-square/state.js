@@ -6,6 +6,9 @@ var KSState = (function() {
   var _activeCourse = 'all';
   var _coursesList = [];
   var _selectedFiles = [];
+  var _currentPage = 1;
+  var _hasMore = true;
+  var _isLoading = false;
 
   return {
     get isAnonymous() { return _isAnonymous; },
@@ -46,6 +49,19 @@ var KSState = (function() {
     reset: function() {
       _isAnonymous = false;
       _selectedFiles = [];
+    },
+
+    get currentPage() { return _currentPage; },
+    set currentPage(val) { _currentPage = val; },
+    get hasMore() { return _hasMore; },
+    set hasMore(val) { _hasMore = val; },
+    get isLoading() { return _isLoading; },
+    set isLoading(val) { _isLoading = val; },
+
+    resetPagination: function() {
+      _currentPage = 1;
+      _hasMore = true;
+      _isLoading = false;
     }
   };
 })();

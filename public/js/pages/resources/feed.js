@@ -1,21 +1,47 @@
 var RSFeed = {
-  fetch: async function() {
+  fetch: async function(reset) {
+    if (typeof reset === 'undefined') reset = true;
+    if (RSState.isLoading) return;
+
     var container = document.getElementById('resources-container');
     if (!container) return;
-    container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">Loading...</div>';
 
-    var endpoint = '/resources';
-    if (RSState.activeType !== 'all') endpoint += '?type=' + RSState.activeType;
-    var q = document.getElementById('search-input');
-    if (q && q.value.trim()) endpoint += (endpoint.indexOf('?') === -1 ? '?' : '&') + 'search=' + encodeURIComponent(KSSecurity.sanitize(q.value.trim()));
-
-    var data = await API.get(endpoint);
-    if (data.success && data.data) {
-      RSState.resources = data.data;
-      this.render();
-    } else {
-      container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">No resources found.</div>';
+    if (reset) {
+      RSState.resetPagination();
+      RSState.resources = [];
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">Loading...</div>';
     }
+
+    RSState.isLoading = true;
+
+    var endpoint = '/resources?page=' + RSState.currentPage + '&limit=20';
+    if (RSState.activeType !== 'all') endpoint += '&type=' + RSState.activeType;
+    var q = document.getElementById('search-input');
+    if (q && q.value.trim()) endpoint += '&search=' + encodeURIComponent(KSSecurity.sanitize(q.value.trim()));
+
+    try {
+      var data = await API.get(endpoint);
+      if (data.success && data.data && data.data.length > 0) {
+        if (reset) {
+          RSState.resources = [];
+        }
+        RSState.resources = RSState.resources.concat(data.data);
+        if (data.data.length < 20) {
+          RSState.hasMore = false;
+        } else {
+          RSState.hasMore = true;
+          RSState.currentPage++;
+        }
+      } else {
+        RSState.hasMore = false;
+      }
+
+      this.render();
+    } catch (err) {
+      if (reset) container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">No resources found.</div>';
+    }
+
+    RSState.isLoading = false;
   },
 
   render: function() {
@@ -32,6 +58,20 @@ var RSFeed = {
     RSState.resources.forEach(function(r) {
       container.appendChild(self.buildCard(r));
     });
+
+    if (RSState.hasMore) {
+      var loadMore = document.createElement('div');
+      loadMore.id = 'load-more-btn';
+      loadMore.style.cssText = 'text-align:center;padding:16px 0 8px;';
+      var btn = document.createElement('button');
+      btn.className = 'load-more-link';
+      btn.textContent = 'Load More';
+      btn.addEventListener('click', function() {
+        RSFeed.fetch(false);
+      });
+      loadMore.appendChild(btn);
+      container.appendChild(loadMore);
+    }
 
     this.attachEvents();
     if (typeof RSRightPanel !== 'undefined') RSRightPanel.update();

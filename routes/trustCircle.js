@@ -12,8 +12,8 @@ const rateLimit = require('express-rate-limit');
 
 const messageLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 20,
-  message: { success: false, message: 'Max 20 messages per hour.' }
+  max: 5,
+  message: { success: false, message: 'Max 5 messages per hour.' }
 });
 
 router.get('/rooms', getRooms);

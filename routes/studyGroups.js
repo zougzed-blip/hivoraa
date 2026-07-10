@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../middleware/upload');
+const verifyFileSignature = require('../middleware/verifyFileSignature');
 const {
   validateCreate,
   createStudyGroup,
@@ -10,7 +11,8 @@ const {
   leaveStudyGroup,
   sendMessage,
   sendAudioMessage,
-  deleteStudyGroup
+  deleteStudyGroup,
+  validateSendMessage
 } = require('../controllers/studyGroupController');
 const { protect } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
@@ -21,6 +23,19 @@ const groupLimiter = rateLimit({
   message: { success: false, message: 'Max 5 groups per hour.' }
 });
 
+
+const messageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 50,
+  message: { success: false, message: 'Too many messages. Slow down.' }
+});
+
+const audioLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { success: false, message: 'Too many audio messages. Slow down.' }
+});
+
 // Public
 router.get('/', getAllStudyGroups);
 router.get('/:id', getStudyGroupById);
@@ -29,8 +44,15 @@ router.get('/:id', getStudyGroupById);
 router.post('/', protect, groupLimiter, validateCreate, createStudyGroup);
 router.post('/:id/join', protect, joinStudyGroup);
 router.post('/:id/leave', protect, leaveStudyGroup);
-router.post('/:id/message', protect, sendMessage);
-router.post('/:id/audio', protect, upload.single('audio'), sendAudioMessage);
+router.post('/:id/message', protect, messageLimiter, validateSendMessage, sendMessage);
+router.post(
+  '/:id/audio',
+  protect,
+  audioLimiter,
+  upload.single('audio'),
+  verifyFileSignature(['audio']),
+  sendAudioMessage
+);
 router.delete('/:id', protect, deleteStudyGroup);
 
 module.exports = router;

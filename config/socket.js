@@ -25,7 +25,7 @@ const initSocket = (server) => {
       console.log(`Socket ${socket.id} left group ${groupId}`);
     });
 
-    // Rejoindre sa room utilisateur privee 
+    // Rejoindre sa room utilisateur privee
     socket.on('joinUser', (userId) => {
       socket.join(`user-${userId}`);
       console.log(`Socket ${socket.id} joined user room ${userId}`);
@@ -37,12 +37,30 @@ const initSocket = (server) => {
       console.log(`Socket ${socket.id} left user room ${userId}`);
     });
 
+ 
+    socket.on('joinTalentConversation', ({ talentId, currentUserId, otherUserId }) => {
+      if (!talentId || !currentUserId || !otherUserId) return;
+
+      const participantIds = [currentUserId.toString(), otherUserId.toString()].sort();
+      const room = `talent-${talentId}-conv-${participantIds[0]}-${participantIds[1]}`;
+
+      socket.join(room);
+      console.log(`Socket ${socket.id} joined conversation room ${room}`);
+    });
+
+    socket.on('leaveTalentConversation', ({ talentId, currentUserId, otherUserId }) => {
+      if (!talentId || !currentUserId || !otherUserId) return;
+
+      const participantIds = [currentUserId.toString(), otherUserId.toString()].sort();
+      const room = `talent-${talentId}-conv-${participantIds[0]}-${participantIds[1]}`;
+
+      socket.leave(room);
+      console.log(`Socket ${socket.id} left conversation room ${room}`);
+    });
+
     socket.on('disconnect', () => {
       console.log('User disconnected:', socket.id);
     });
-    socket.on('joinTalent', (talentId) => {
-  socket.join(`talent-${talentId}`);
-});
   });
 
   return io;

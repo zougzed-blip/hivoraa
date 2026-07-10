@@ -11,7 +11,14 @@ var LCRightPanel = {
       if (data.success && data.data && data.data.length > 0) {
         el.innerHTML = '';
         data.data.forEach(function(p) {
-          el.innerHTML += '<div class="panel-item"><span class="item-tag">' + KSSecurity.esc(p.course ? p.course.code : 'N/A') + '</span> ' + KSSecurity.esc(p.title ? p.title.substring(0, 30) : '') + '</div>';
+          var item = document.createElement('div');
+          item.className = 'panel-item';
+          item.style.cursor = 'pointer';
+          item.innerHTML = '<span class="item-tag">' + KSSecurity.esc(p.course ? p.course.code : 'N/A') + '</span> ' + KSSecurity.esc(p.title ? p.title.substring(0, 30) : '');
+          item.addEventListener('click', function() {
+            window.location.href = '/index.html?post=' + p._id;
+          });
+          el.appendChild(item);
         });
       } else {
         el.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px;">No posts yet</div>';
@@ -26,7 +33,14 @@ var LCRightPanel = {
       if (data.success && data.data && data.data.length > 0) {
         el.innerHTML = '';
         data.data.slice(0, 4).forEach(function(g) {
-          el.innerHTML += '<div class="panel-item"><span class="online-dot"></span> ' + KSSecurity.esc(g.topic ? g.topic.substring(0, 30) : 'Group') + ' <span style="color:var(--green);font-size:10px;margin-left:auto;">' + (g.participants ? g.participants.length : 0) + ' members</span></div>';
+          var item = document.createElement('div');
+          item.className = 'panel-item';
+          item.style.cursor = 'pointer';
+          item.innerHTML = '<span class="online-dot"></span> ' + KSSecurity.esc(g.topic ? g.topic.substring(0, 30) : 'Group') + ' <span style="color:var(--green);font-size:10px;margin-left:auto;">' + (g.participants ? g.participants.length : 0) + ' members</span>';
+          item.addEventListener('click', function() {
+            window.location.href = '/groups.html?group=' + g._id;
+          });
+          el.appendChild(item);
         });
       } else {
         el.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px;">No groups yet</div>';

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../middleware/upload');
+const verifyFileSignature = require('../middleware/verifyFileSignature');
 const {
   validateCreate,
   validateVote,
@@ -30,11 +31,34 @@ router.get('/:id', getHelpRequestById);
 router.post('/:id/vote', optionalAuth, validateVote, voteDifficulty);
 
 // Protected
-router.post('/', protect, createLimiter, upload.array('images', 5), validateCreate, createHelpRequest);
-router.put('/:id', protect, upload.array('images', 5), updateHelpRequest);
-router.delete('/:id', protect, deleteHelpRequest);
-router.post('/:id/reply', protect, upload.single('image'), validateReply, addReply);
-router.put('/:id/reply/:replyId/useful', protect, markReplyUseful);
-router.post('/:id/reply/:replyId/like', protect, likeReply);
+router.post(
+  '/',
+  protect,
+  createLimiter,
+  upload.array('images', 5),
+  verifyFileSignature(['image']),
+  validateCreate,
+  createHelpRequest
+);
+router.put(
+  '/:id',
+  protect,
+  createLimiter,
+  upload.array('images', 5),
+  verifyFileSignature(['image']),
+  updateHelpRequest
+);
+router.delete('/:id', protect, createLimiter, deleteHelpRequest);
+router.post(
+  '/:id/reply',
+  protect,
+  createLimiter,
+  upload.single('image'),
+  verifyFileSignature(['image']),
+  validateReply,
+  addReply
+);
+router.put('/:id/reply/:replyId/useful', protect, createLimiter, markReplyUseful);
+router.post('/:id/reply/:replyId/like', protect, createLimiter, likeReply);
 
 module.exports = router;

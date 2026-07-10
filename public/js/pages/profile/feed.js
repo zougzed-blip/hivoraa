@@ -107,7 +107,7 @@ var PFFeed = {
     });
 
     document.getElementById('signout-btn').addEventListener('click', function() {
-      Auth.logout();
+      Auth.showLogoutConfirm();
     });
 
     document.querySelectorAll('.delete-post-btn').forEach(function(b) {

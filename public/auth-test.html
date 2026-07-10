@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..600&display=swap" rel="stylesheet">
-  
+
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -233,16 +233,16 @@
 <body>
 
   <div class="auth-container">
-    
+
     <!-- Logo -->
     <div class="auth-logo">
-      <img src="hivoraa-logo.png" alt="Hivoraa Logo" onerror="this.style.display='none'">
+      <img id="logo-img" src="assets/hivoraa-logo.webp" alt="Hivoraa Logo">
       <span class="auth-logo-text">Hivoraa</span>
     </div>
 
     <!-- Card -->
     <div class="auth-card">
-      
+
       <h1 class="auth-title">Welcome to Hivoraa</h1>
       <p class="auth-subtitle">Sign in or create your account instantly</p>
 
@@ -259,7 +259,7 @@
       </div>
 
       <!-- Google Button -->
-      <button class="google-btn" onclick="login()">
+      <button class="google-btn" id="google-login-btn">
         <svg viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -286,74 +286,8 @@
   </div>
 
   <script src="js/config.js"></script>
-  <script>
-    function showStatus(message, type) {
-      var el = document.getElementById('status-message');
-      el.className = 'status-message ' + type;
-      el.innerHTML = type === 'loading' ? '<span class="spinner"></span>' + message : message;
-    }
-
-    function login() {
-      showStatus('Redirecting to Google...', 'loading');
-      
-      var authUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
-        "?client_id=" + CONFIG.GOOGLE_CLIENT_ID +
-        "&redirect_uri=" + encodeURIComponent(CONFIG.REDIRECT_URI) +
-        "&response_type=token" +
-        "&scope=openid%20email%20profile" +
-        "&prompt=select_account";
-      
-      window.location.href = authUrl;
-    }
-
-    window.addEventListener('load', function() {
-      var hash = window.location.hash;
-      
-      if (hash) {
-        var params = new URLSearchParams(hash.substring(1));
-        var accessToken = params.get("access_token");
-        
-        if (accessToken) {
-          showStatus('Signing you in...', 'loading');
-          
-          fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-            headers: { "Authorization": "Bearer " + accessToken }
-          })
-          .then(function(res) { return res.json(); })
-          .then(function(user) {
-            return fetch(CONFIG.API_URL + "/auth/google", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ 
-                token: accessToken,
-                email: user.email,
-                name: user.name,
-                sub: user.sub
-              })
-            });
-          })
-          .then(function(res) { return res.json(); })
-          .then(function(data) {
-            if (data.success) {
-              localStorage.setItem('hivoraa_token', data.data.token);
-              localStorage.setItem('hivoraa_user', JSON.stringify(data.data.user));
-              showStatus('Welcome! Redirecting...', 'success');
-              setTimeout(function() {
-                window.location.href = '/index.html';
-              }, 800);
-            } else {
-              showStatus('Authentication failed. Please try again.', 'error');
-            }
-          })
-          .catch(function(err) {
-            showStatus('Connection error. Please try again.', 'error');
-            console.error(err);
-          });
-          
-          window.location.hash = "";
-        }
-      }
-    });
-  </script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/auth-test/index.js"></script>
 </body>
 </html>

@@ -18,7 +18,7 @@ const uploadToCloudinary = (file) => {
 
 // Validation rules
 const validateCreate = [
-  body('course').trim().notEmpty().withMessage('Course is required.'),
+  body('course').trim().isLength({ min: 1, max: 30 }).escape().withMessage('Course is required.'),
   body('title').trim().isLength({ min: 3, max: 200 }).escape(),
   body('type').isIn(['pdf', 'video', 'link', 'image']).withMessage('Invalid type.')
 ];
@@ -84,12 +84,21 @@ const createResource = async (req, res, next) => {
 // Get all resources
 const getAllResources = async (req, res, next) => {
   try {
-    const { course, type, sort, search, page = 1, limit = 50 } = req.query;
+    const { course, type, sort, search, page = 1, limit = 20 } = req.query;
 
     const filter = {};
     if (course) filter.course = course;
     if (type) filter.type = type;
-    if (search) filter.$text = { $search: search };
+
+    if (search && search.trim()) {
+      const escapedSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedSearch, 'i');
+      filter.$or = [
+        { title: regex },
+        { type: regex },
+        { fileUrl: regex }
+      ];
+    }
 
     let sortOption = { createdAt: -1 };
     if (sort === 'popular') sortOption = { likes: -1 };

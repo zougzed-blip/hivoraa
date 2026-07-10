@@ -30,10 +30,12 @@ const getRoomMessages = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Room not found.' });
     }
 
-    const { page = 1, limit = 100 } = req.query;
+    const { page = 1, limit = 20 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
+   
     const messages = await TrustMessage.find({ room })
+      .select('-author')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -70,12 +72,16 @@ const postMessage = async (req, res, next) => {
 
     const message = await TrustMessage.create({
       room,
-      author: req.user ? req.user._id : null,
+      author: req.user ? req.user._id : null, 
       temporaryPseudonym: temporaryPseudonym || 'Anonymous',
       content
     });
 
-    res.status(201).json({ success: true, message: 'Message posted.', data: message });
+    // On renvoie la réponse sans le champ author, même à l'auteur du message
+    const responseMessage = message.toObject();
+    delete responseMessage.author;
+
+    res.status(201).json({ success: true, message: 'Message posted.', data: responseMessage });
   } catch (error) {
     next(error);
   }

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../middleware/upload');
+const verifyFileSignature = require('../middleware/verifyFileSignature');
 const {
   validateCreate,
   createResource,
@@ -23,7 +24,15 @@ router.get('/', getAllResources);
 router.get('/:id', getResourceById);
 
 // Protected
-router.post('/', protect, resourceLimiter, upload.single('file'), validateCreate, createResource);
+router.post(
+  '/',
+  protect,
+  resourceLimiter,
+  upload.single('file'),
+  verifyFileSignature(['image', 'pdf']),
+  validateCreate,
+  createResource
+);
 router.post('/:id/like', protect, likeResource);
 router.delete('/:id', protect, deleteResource);
 

@@ -1,14 +1,23 @@
 var KSFeed = {
-  fetch: async function() {
+  fetch: async function(reset) {
+    if (typeof reset === 'undefined') reset = true;
+    if (KSState.isLoading) return;
+
     var container = document.getElementById('posts-container');
     if (!container) return;
-    container.textContent = '';
-    var loading = document.createElement('div');
-    loading.style.cssText = 'text-align:center;padding:60px;color:var(--text-muted);';
-    loading.textContent = 'Loading...';
-    container.appendChild(loading);
 
-    var endpoint = '/help-requests?page=1&limit=20';
+    if (reset) {
+      KSState.resetPagination();
+      container.textContent = '';
+      var loading = document.createElement('div');
+      loading.style.cssText = 'text-align:center;padding:60px;color:var(--text-muted);';
+      loading.textContent = 'Loading...';
+      container.appendChild(loading);
+    }
+
+    KSState.isLoading = true;
+
+    var endpoint = '/help-requests?page=' + KSState.currentPage + '&limit=20';
     if (KSState.activeCourse !== 'all') endpoint += '&course=' + encodeURIComponent(KSState.activeCourse);
     if (KSState.activeFilter === 'deadline') endpoint += '&sort=deadline';
     if (KSState.activeFilter === 'active') endpoint += '&sort=active';
@@ -17,21 +26,52 @@ var KSFeed = {
 
     try {
       var data = await API.get(endpoint);
-      container.textContent = '';
+
+      if (reset) container.textContent = '';
+
+      // Remove old Load More button
+      var oldBtn = document.getElementById('load-more-btn');
+      if (oldBtn) oldBtn.remove();
+
       if (data.success && data.data && data.data.length > 0) {
         var self = this;
         data.data.forEach(function(post) {
           container.appendChild(self.buildPost(post));
         });
-      } else {
+
+        if (data.data.length < 20) {
+          KSState.hasMore = false;
+        } else {
+          KSState.hasMore = true;
+          KSState.currentPage++;
+        }
+      } else if (reset) {
         var empty = document.createElement('div');
         empty.style.cssText = 'text-align:center;padding:60px;color:var(--text-muted);';
         empty.textContent = 'No posts yet.';
         container.appendChild(empty);
+        KSState.hasMore = false;
       }
+
+      if (KSState.hasMore) {
+        var loadMore = document.createElement('div');
+        loadMore.id = 'load-more-btn';
+        loadMore.style.cssText = 'text-align:center;padding:16px 0 8px;';
+        var btn = document.createElement('button');
+        btn.className = 'load-more-link';
+        btn.textContent = 'Load More';
+        btn.addEventListener('click', function() {
+          KSFeed.fetch(false);
+        });
+        loadMore.appendChild(btn);
+        container.appendChild(loadMore);
+      }
+
     } catch (err) {
-      container.textContent = 'Network error.';
+      if (reset) container.textContent = 'Network error.';
     }
+
+    KSState.isLoading = false;
   },
 
   buildPost: function(post) {

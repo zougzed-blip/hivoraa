@@ -126,7 +126,7 @@ var KSEvents = {
 
   initSignOut: function() {
     var btn = document.getElementById('sign-out-link');
-    if (btn) btn.addEventListener('click', function() { Auth.logout(); });
+    if (btn) btn.addEventListener('click', function() { Auth.showLogoutConfirm(); });
   },
 
   initSignIn: function() {

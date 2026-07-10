@@ -1,21 +1,47 @@
 var TLFeed = {
-  fetch: async function() {
+  fetch: async function(reset) {
+    if (typeof reset === 'undefined') reset = true;
+    if (TLState.isLoading) return;
+
     var container = document.getElementById('talents-container');
     if (!container) return;
-    container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">Loading...</div>';
 
-    var endpoint = '/talents';
-    if (TLState.activeSort === 'popular') endpoint += '?sort=popular';
-    var q = document.getElementById('search-input');
-    if (q && q.value.trim()) endpoint += (endpoint.indexOf('?') === -1 ? '?' : '&') + 'search=' + encodeURIComponent(KSSecurity.sanitize(q.value.trim()));
-
-    var data = await API.get(endpoint);
-    if (data.success && data.data) {
-      TLState.talents = data.data;
-      this.render();
-    } else {
-      container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">No talents found.</div>';
+    if (reset) {
+      TLState.resetPagination();
+      TLState.talents = [];
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">Loading...</div>';
     }
+
+    TLState.isLoading = true;
+
+    var endpoint = '/talents?page=' + TLState.currentPage + '&limit=20';
+    if (TLState.activeSort === 'popular') endpoint += '&sort=popular';
+    var q = document.getElementById('search-input');
+    if (q && q.value.trim()) endpoint += '&search=' + encodeURIComponent(KSSecurity.sanitize(q.value.trim()));
+
+    try {
+      var data = await API.get(endpoint);
+      if (data.success && data.data && data.data.length > 0) {
+        if (reset) {
+          TLState.talents = [];
+        }
+        TLState.talents = TLState.talents.concat(data.data);
+        if (data.data.length < 20) {
+          TLState.hasMore = false;
+        } else {
+          TLState.hasMore = true;
+          TLState.currentPage++;
+        }
+      } else {
+        TLState.hasMore = false;
+      }
+
+      this.render();
+    } catch (err) {
+      if (reset) container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">No talents found.</div>';
+    }
+
+    TLState.isLoading = false;
   },
 
   render: function() {
@@ -35,6 +61,20 @@ var TLFeed = {
       container.appendChild(self.buildCard(t));
     });
 
+    if (TLState.hasMore) {
+      var loadMore = document.createElement('div');
+      loadMore.id = 'load-more-btn';
+      loadMore.style.cssText = 'text-align:center;padding:16px 0 8px;';
+      var btn = document.createElement('button');
+      btn.className = 'load-more-link';
+      btn.textContent = 'Load More';
+      btn.addEventListener('click', function() {
+        TLFeed.fetch(false);
+      });
+      loadMore.appendChild(btn);
+      container.appendChild(loadMore);
+    }
+
     this.attachEvents();
     if (typeof TLRightPanel !== 'undefined') TLRightPanel.update();
   },
@@ -53,6 +93,11 @@ var TLFeed = {
     var isOwner = userId && ownerId && userId === ownerId;
     var liked = t.likes ? t.likes.some(function(id) { return id === userId; }) : false;
 
+    
+    var contactOrMessagesBtn = isOwner
+      ? '<button class="action-btn primary messages-btn" data-id="' + t._id + '">Messages</button>'
+      : '<button class="action-btn primary contact-btn" data-id="' + t._id + '">Contact</button>';
+
     card.innerHTML = '<div class="talent-header"><div class="talent-avatar">' + KSSecurity.esc(initial) + '</div><span class="talent-pseudo">' + KSSecurity.esc(userName) + '</span></div>' +
       '<div class="talent-skill">' + KSSecurity.esc(t.skillOffered || '') + '</div>' +
       '<div class="talent-desc">' + KSSecurity.esc(t.description || '') + '</div>' +
@@ -63,7 +108,7 @@ var TLFeed = {
       '</div>' +
       '<div class="talent-actions">' +
         '<button class="action-btn like-btn' + (liked ? ' liked' : '') + '" data-id="' + t._id + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="' + (liked ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Like</button>' +
-        '<button class="action-btn primary contact-btn" data-id="' + t._id + '">Contact</button>' +
+        contactOrMessagesBtn +
         (isOwner ? '<button class="action-btn danger delete-btn" data-id="' + t._id + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Delete</button>' : '') +
       '</div>';
 
@@ -81,7 +126,10 @@ var TLFeed = {
       b.addEventListener('click', function(e) { e.stopPropagation(); TLEvents.toggleLike(b.dataset.id); });
     });
     document.querySelectorAll('.contact-btn').forEach(function(b) {
-      b.addEventListener('click', function(e) { e.stopPropagation(); TLEvents.openChat(b.dataset.id); });
+      b.addEventListener('click', function(e) { e.stopPropagation(); TLEvents.openConversation(b.dataset.id); });
+    });
+    document.querySelectorAll('.messages-btn').forEach(function(b) {
+      b.addEventListener('click', function(e) { e.stopPropagation(); TLEvents.openConversationsList(b.dataset.id); });
     });
     document.querySelectorAll('.delete-btn').forEach(function(b) {
       b.addEventListener('click', function(e) { e.stopPropagation(); TLEvents.deleteTalent(b.dataset.id); });

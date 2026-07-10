@@ -1,6 +1,15 @@
 var SGState = {
   groups: [],
   currentDetailId: null,
+  currentPage: 1,
+  hasMore: true,
+  isLoading: false,
+
+  resetPagination: function() {
+    this.currentPage = 1;
+    this.hasMore = true;
+    this.isLoading = false;
+  },
 
   getGroup: function(id) {
     for (var i = 0; i < this.groups.length; i++) {

@@ -69,10 +69,23 @@ var TCFeed = {
     var list = document.getElementById('messages-list');
     if (!list) return;
 
-    var data = await API.get('/trust-circle/rooms/' + roomId);
+    if (TCState.isLoadingMessages) return;
+    TCState.isLoadingMessages = true;
+
+    var data = await API.get('/trust-circle/rooms/' + roomId + '?page=' + TCState.messagePage + '&limit=20');
     if (data.success && data.data) {
-      TCState.messages = data.data;
-      list.innerHTML = data.data.length ? data.data.map(function(m) {
+      if (TCState.messagePage === 1) {
+        TCState.messages = [];
+      }
+      TCState.messages = TCState.messages.concat(data.data);
+      if (data.data.length < 20) {
+        TCState.hasMoreMessages = false;
+      } else {
+        TCState.hasMoreMessages = true;
+        TCState.messagePage++;
+      }
+
+      list.innerHTML = TCState.messages.length ? TCState.messages.map(function(m) {
         var liked = m.likes ? m.likes.some(function(id) {
           var user = Auth.getUser();
           return user && (id === user.id || id === user._id);
@@ -85,11 +98,19 @@ var TCFeed = {
         '</div>';
       }).join('') : '<div style="text-align:center;color:var(--text-muted);padding:20px;">No messages yet. Be the first to share.</div>';
 
+      if (TCState.hasMoreMessages) {
+        list.insertAdjacentHTML('beforeend', '<div style="text-align:center;padding:14px 0;"><button class="load-more-link" id="trust-load-more-btn">Load More</button></div>');
+        var btn = document.getElementById('trust-load-more-btn');
+        if (btn) btn.addEventListener('click', function() { TCFeed.loadMessages(roomId); });
+      }
+
       document.querySelectorAll('.trust-like-btn').forEach(function(b) {
         b.addEventListener('click', function(e) { e.stopPropagation(); TCEvents.toggleLike(b.dataset.msgId); });
       });
 
       list.scrollTop = list.scrollHeight;
     }
+
+    TCState.isLoadingMessages = false;
   }
 };

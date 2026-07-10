@@ -16,9 +16,9 @@ const uploadToCloudinary = (file, folder) => {
   });
 };
 
-// Validation rules
+
 const validateCreate = [
-  body('course').trim().notEmpty().withMessage('Course is required.'),
+  body('course').trim().isLength({ min: 1, max: 30 }).escape().withMessage('Course is required.'),
   body('title').trim().isLength({ min: 3, max: 150 }).escape(),
   body('content').trim().isLength({ min: 5, max: 3000 }).escape(),
   body('deadline').isISO8601().withMessage('Invalid date format.'),
@@ -43,20 +43,18 @@ const createHelpRequest = async (req, res, next) => {
 
     const { course, title, content, deadline, isAnonymous } = req.body;
 
-    // Find or create course
     let finalCourseId = course;
-    
-    // Check if course is a valid ObjectId (24 hex chars)
+
     if (course.match(/^[0-9a-fA-F]{24}$/)) {
       const courseExists = await Course.findById(course);
       if (!courseExists) {
         return res.status(404).json({ success: false, message: 'Course not found.' });
       }
     } else {
-      // Course is a code like "WEB401"
+      
       let courseDoc = await Course.findOne({ code: course.toUpperCase() });
       if (!courseDoc) {
-        // Create new course
+        
         courseDoc = await Course.create({
           code: course.toUpperCase(),
           name: course.toUpperCase(),
@@ -99,7 +97,6 @@ const createHelpRequest = async (req, res, next) => {
   }
 };
 
-// Get all help requests
 const getAllHelpRequests = async (req, res, next) => {
   try {
     const { course, sort, search, year, semester, page = 1, limit = 50 } = req.query;
@@ -127,13 +124,14 @@ const getAllHelpRequests = async (req, res, next) => {
       filter.course = { $in: courses.map(c => c._id) };
     }
 
-    if (search) {
-  const regex = new RegExp(search, 'i');
-  filter.$or = [
-    { title: regex },
-    { content: regex }
-  ];
-}
+    if (search && search.trim()) {
+      const escapedSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedSearch, 'i');
+      filter.$or = [
+        { title: regex },
+        { content: regex }
+      ];
+    }
 
     let sortOption = { createdAt: -1 };
     if (sort === 'deadline') sortOption = { deadline: 1 };

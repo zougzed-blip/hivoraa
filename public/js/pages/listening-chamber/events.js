@@ -4,7 +4,7 @@ var LCEvents = {
     if (signInBtn) signInBtn.addEventListener('click', function() { window.location.href = '/auth-test.html'; });
 
     var signOutBtn = document.getElementById('sign-out-link');
-    if (signOutBtn) signOutBtn.addEventListener('click', function() { Auth.logout(); });
+    if (signOutBtn) signOutBtn.addEventListener('click', function() { Auth.showLogoutConfirm(); });
 
     var hamburger = document.getElementById('hamburger-btn');
     var sidebar = document.getElementById('sidebar');

@@ -20,11 +20,19 @@ const uploadToCloudinary = (file, folder, resourceType = 'image') => {
 
 // Validation rules
 const validateCreate = [
-   body('course').trim().notEmpty().withMessage('Course is required.'),
+  body('course').trim().isLength({ min: 1, max: 30 }).escape().withMessage('Course is required.'),
   body('topic').trim().isLength({ min: 3, max: 200 }).escape(),
   body('location').trim().isLength({ min: 2, max: 200 }).escape(),
   body('dateTime').isISO8601().withMessage('Invalid date.'),
   body('maxParticipants').isInt({ min: 2, max: 20 }).withMessage('Must be 2-20.')
+];
+
+// Validation rules for sending a message
+const validateSendMessage = [
+  body('text')
+    .trim()
+    .isLength({ min: 1, max: 2000 }).withMessage('Message must be between 1 and 2000 characters.')
+    .escape()
 ];
 
 // Create study group
@@ -81,21 +89,34 @@ const createStudyGroup = async (req, res, next) => {
 // Get all groups
 const getAllStudyGroups = async (req, res, next) => {
   try {
-    const { course, active } = req.query;
+    const { course, active, page = 1, limit = 20 } = req.query;
 
     const filter = {};
     if (course) filter.course = course;
     if (active === 'true') filter.isActive = true;
     if (active === 'false') filter.isActive = false;
 
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
     const studyGroups = await StudyGroup.find(filter)
       .populate('creator', 'pseudonym')
       .populate('course', 'code name year semester')
       .populate('participants', 'pseudonym')
-       .populate('messages.sender', 'pseudonym') 
-      .sort({ dateTime: 1 });
+      .populate('messages.sender', 'pseudonym')
+      .sort({ dateTime: 1 })
+      .skip(skip)
+      .limit(parseInt(limit));
 
-    res.status(200).json({ success: true, count: studyGroups.length, data: studyGroups });
+    const total = await StudyGroup.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      count: studyGroups.length,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      data: studyGroups
+    });
   } catch (error) {
     next(error);
   }
@@ -191,9 +212,14 @@ const leaveStudyGroup = async (req, res, next) => {
 // Send text message 
 const sendMessage = async (req, res, next) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
     const { text } = req.body;
 
-    if (!text || text.trim().length === 0) {
+    if (!text || text.length === 0) {
       return res.status(400).json({ success: false, message: 'Message cannot be empty.' });
     }
 
@@ -213,7 +239,7 @@ const sendMessage = async (req, res, next) => {
 
     studyGroup.messages.push({
       sender: req.user._id,
-      text: text.trim(),
+      text: text,
       type: 'text'
     });
 
@@ -225,7 +251,7 @@ const sendMessage = async (req, res, next) => {
     const messageData = {
       _id: savedMessage._id,
       sender: { _id: req.user._id, pseudonym: req.user.pseudonym },
-      text: text.trim(),
+      text: text,
       type: 'text',
       createdAt: savedMessage.createdAt
     };
@@ -316,6 +342,7 @@ const deleteStudyGroup = async (req, res, next) => {
 
 module.exports = {
   validateCreate,
+  validateSendMessage,
   createStudyGroup,
   getAllStudyGroups,
   getStudyGroupById,

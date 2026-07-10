@@ -12,12 +12,16 @@ var KSCourses = {
     var container = document.getElementById('course-filters');
     if (!container) return;
     container.textContent = '';
+
     var all = document.createElement('span');
     all.className = 'course-pill active';
     all.setAttribute('data-course', 'all');
     all.textContent = 'All';
     container.appendChild(all);
-    KSState.coursesList.forEach(function(c) {
+
+    // Afficher seulement les 5 derniers cours (les plus récents)
+    var recentCourses = KSState.coursesList.slice(-5).reverse();
+    recentCourses.forEach(function(c) {
       var pill = document.createElement('span');
       pill.className = 'course-pill';
       pill.setAttribute('data-course', KSSecurity.esc(c.code));
@@ -30,10 +34,12 @@ var KSCourses = {
     var select = document.getElementById('modal-course');
     if (!select) return;
     select.textContent = '';
+
     var opt = document.createElement('option');
     opt.value = '';
     opt.textContent = 'Select a course...';
     select.appendChild(opt);
+
     KSState.coursesList.forEach(function(c) {
       var o = document.createElement('option');
       o.value = c._id;

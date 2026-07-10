@@ -1,16 +1,42 @@
 var SGFeed = {
-  fetch: async function() {
+  fetch: async function(reset) {
+    if (typeof reset === 'undefined') reset = true;
+    if (SGState.isLoading) return;
+
     var container = document.getElementById('groups-container');
     if (!container) return;
-    container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">Loading...</div>';
 
-    var data = await API.get('/study-groups');
-    if (data.success && data.data) {
-      SGState.groups = data.data;
-      this.render();
-    } else {
-      container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">No study groups yet.</div>';
+    if (reset) {
+      SGState.resetPagination();
+      SGState.groups = [];
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">Loading...</div>';
     }
+
+    SGState.isLoading = true;
+
+    try {
+      var data = await API.get('/study-groups?page=' + SGState.currentPage + '&limit=20');
+      if (data.success && data.data && data.data.length > 0) {
+        if (reset) {
+          SGState.groups = [];
+        }
+        SGState.groups = SGState.groups.concat(data.data);
+        if (data.data.length < 20) {
+          SGState.hasMore = false;
+        } else {
+          SGState.hasMore = true;
+          SGState.currentPage++;
+        }
+      } else {
+        SGState.hasMore = false;
+      }
+
+      this.render();
+    } catch (err) {
+      if (reset) container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">No study groups yet.</div>';
+    }
+
+    SGState.isLoading = false;
   },
 
   render: function() {
@@ -29,6 +55,21 @@ var SGFeed = {
     SGState.groups.forEach(function(g) {
       container.appendChild(self.buildCard(g));
     });
+
+    if (SGState.hasMore) {
+      var loadMore = document.createElement('div');
+      loadMore.id = 'load-more-btn';
+      loadMore.style.cssText = 'text-align:center;padding:16px 0 8px;';
+      var btn = document.createElement('button');
+      btn.className = 'load-more-link';
+      btn.textContent = 'Load More';
+      btn.addEventListener('click', function() {
+        SGFeed.fetch(false);
+      });
+      loadMore.appendChild(btn);
+      container.appendChild(loadMore);
+    }
+
     this.attachCardEvents();
     if (typeof SGRightPanel !== 'undefined') SGRightPanel.update();
   },

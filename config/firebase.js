@@ -1,4 +1,5 @@
-const admin = require('firebase-admin');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 
 const serviceAccount = {
   projectId: process.env.FIREBASE_PROJECT_ID,
@@ -6,8 +7,8 @@ const serviceAccount = {
   privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
 };
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+const app = initializeApp({
+  credential: cert(serviceAccount)
 });
 
-module.exports = admin;
+module.exports = getAuth(app);
