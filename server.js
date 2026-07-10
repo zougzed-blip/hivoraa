@@ -50,7 +50,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "https://cdn.socket.io", "https://accounts.google.com", "https://fonts.googleapis.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://images.unsplash.com", "https://i.ytimg.com"],
-      connectSrc: ["'self'", clientUrl, clientUrl.replace('http', 'ws')],
+      connectSrc: ["'self'", clientUrl, clientUrl.replace('https', 'wss').replace('http', 'ws')],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       frameSrc: ["https://accounts.google.com"]
     }
