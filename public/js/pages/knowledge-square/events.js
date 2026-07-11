@@ -8,6 +8,7 @@ var KSEvents = {
     this.initSidebar();
     this.initSignOut();
     this.initSignIn();
+    this.initMobileSignIn(); 
     this.initModal();
     this.initImageViewer();
     this.initKeyboard();
@@ -27,6 +28,15 @@ var KSEvents = {
       if (moon) moon.classList.toggle('hidden', KSState.isDarkMode);
     });
   },
+
+  initMobileSignIn: function() {
+  var btn = document.getElementById('mobile-signin-btn');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      window.location.href = '/authentication';
+    });
+  }
+},
 
   initSidebarTheme: function() {
     var html = document.documentElement;

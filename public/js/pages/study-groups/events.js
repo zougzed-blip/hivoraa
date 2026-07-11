@@ -30,12 +30,15 @@ var SGEvents = {
     var signInBtn = document.getElementById('google-signin-btn');
     if (signInBtn) {
       signInBtn.addEventListener('click', function() {
-        window.location.href = '/auth-test.html';
+        window.location.href = '/authentication';
       });
     }
 
     var signOutBtn = document.getElementById('sign-out-link');
     if (signOutBtn) signOutBtn.addEventListener('click', function() { Auth.showLogoutConfirm(); });
+
+    var mobileSignInBtn = document.getElementById('mobile-signin-btn');
+    if (mobileSignInBtn) mobileSignInBtn.addEventListener('click', function() { window.location.href = '/authentication'; });
 
     var hamburger = document.getElementById('hamburger-btn');
     var sidebar = document.getElementById('sidebar');
@@ -236,20 +239,21 @@ var SGEvents = {
       Toast.show('Microphone access denied');
     }
   },
+
   loadCourses: async function() {
-  var data = await API.get('/courses');
-  if (data.success && data.data) {
-    var select = document.getElementById('modal-course');
-    if (!select) return;
-    select.innerHTML = '<option value="">Select a course...</option>';
-    data.data.forEach(function(c) {
-      var opt = document.createElement('option');
-      opt.value = c._id;
-      opt.textContent = c.code + ' - ' + c.name;
-      select.appendChild(opt);
-    });
-  }
-},
+    var data = await API.get('/courses');
+    if (data.success && data.data) {
+      var select = document.getElementById('modal-course');
+      if (!select) return;
+      select.innerHTML = '<option value="">Select a course...</option>';
+      data.data.forEach(function(c) {
+        var opt = document.createElement('option');
+        opt.value = c._id;
+        opt.textContent = c.code + ' - ' + c.name;
+        select.appendChild(opt);
+      });
+    }
+  },
 
   stopRecording: function() {
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {

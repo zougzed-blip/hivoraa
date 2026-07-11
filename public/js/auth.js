@@ -20,22 +20,25 @@ var Auth = {
   },
 
   updateUI: function() {
-    var b = document.getElementById('google-signin-btn');
-    var m = document.getElementById('user-mini');
-    var a = document.getElementById('avatar-letter');
-    var n = document.getElementById('user-name-display');
+  var b = document.getElementById('google-signin-btn');
+  var m = document.getElementById('user-mini');
+  var a = document.getElementById('avatar-letter');
+  var n = document.getElementById('user-name-display');
+  var mobileBtn = document.getElementById('mobile-signin-btn');
 
-    if (this.isLoggedIn()) {
-      var u = this.getUser();
-      if (b) b.style.display = 'none';
-      if (m) m.classList.remove('hidden');
-      if (a && u) a.textContent = (u.pseudonym || u.email ).charAt(0).toUpperCase();
-      if (n && u) n.textContent = u.pseudonym || u.email ;
-    } else {
-      if (b) b.style.display = 'block';
-      if (m) m.classList.add('hidden');
-    }
-  },
+  if (this.isLoggedIn()) {
+    var u = this.getUser();
+    if (b) b.style.display = 'none';
+    if (m) m.classList.remove('hidden');
+    if (a && u) a.textContent = (u.pseudonym || u.email || 'U').charAt(0).toUpperCase();
+    if (n && u) n.textContent = u.pseudonym || u.email || 'User';
+    if (mobileBtn) mobileBtn.style.display = 'none';
+  } else {
+    if (b) b.style.display = 'block';
+    if (m) m.classList.add('hidden');
+    if (mobileBtn) mobileBtn.style.display = 'flex';
+  }
+},
 
   showLogoutConfirm: function() {
     if (document.getElementById('logout-confirm-modal')) return;

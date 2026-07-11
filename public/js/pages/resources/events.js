@@ -43,6 +43,9 @@ var RSEvents = {
     var signOutBtn = document.getElementById('sign-out-link');
     if (signOutBtn) signOutBtn.addEventListener('click', function() { Auth.showLogoutConfirm(); });
 
+    var mobileSignInBtn = document.getElementById('mobile-signin-btn');
+    if (mobileSignInBtn) mobileSignInBtn.addEventListener('click', function() { window.location.href = '/authentication'; });
+
     var hamburger = document.getElementById('hamburger-btn');
     var sidebar = document.getElementById('sidebar');
     var overlay = document.getElementById('sidebar-overlay');

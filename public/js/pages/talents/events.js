@@ -20,10 +20,14 @@ var TLEvents = {
     if (modalClose) modalClose.addEventListener('click', function() { document.getElementById('post-modal').classList.add('hidden'); });
 
     var signInBtn = document.getElementById('google-signin-btn');
-    if (signInBtn) signInBtn.addEventListener('click', function() { window.location.href = '/auth-test.html'; });
+    if (signInBtn) signInBtn.addEventListener('click', function() { window.location.href = '/autentication'; });
 
     var signOutBtn = document.getElementById('sign-out-link');
     if (signOutBtn) signOutBtn.addEventListener('click', function() { Auth.showLogoutConfirm(); });
+      
+
+    var mobileSignInBtn = document.getElementById('mobile-signin-btn');
+    if (mobileSignInBtn) mobileSignInBtn.addEventListener('click', function() { window.location.href = '/authentication'; });
 
     var hamburger = document.getElementById('hamburger-btn');
     var sidebar = document.getElementById('sidebar');
