@@ -1,8 +1,8 @@
-
 const ALLOWED_SIGNATURES = {
   image: ['jpg', 'png', 'webp', 'gif'],
   pdf: ['pdf'],
-  audio: ['mp3', 'wav', 'webm', 'ogg', 'mp4', 'm4a', 'aac']
+  audio: ['mp3', 'wav', 'webm', 'ogg', 'mp4', 'm4a', 'aac'],
+  video: ['webm', 'mp4']
 };
 
 const verifyFileSignature = (categories) => {
@@ -18,13 +18,16 @@ const verifyFileSignature = (categories) => {
 
       if (files.length === 0) return next();
 
-     
       const { fileTypeFromBuffer } = await import('file-type');
 
       for (const file of files) {
         const detected = await fileTypeFromBuffer(file.buffer);
 
         if (!detected) {
+          const mimeExt = file.mimetype.split('/')[1];
+          if (allowedExts.includes(mimeExt)) {
+            continue; // Accepter si le MIME correspond
+          }
           return res.status(400).json({
             success: false,
             message: 'Could not verify file type. File may be corrupted or not a supported format.'

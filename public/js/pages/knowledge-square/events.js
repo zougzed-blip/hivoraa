@@ -11,6 +11,7 @@ var KSEvents = {
     this.initModal();
     this.initImageViewer();
     this.initKeyboard();
+    Auth.updateUI();
   },
 
   initTheme: function() {
@@ -133,7 +134,7 @@ var KSEvents = {
     var btn = document.getElementById('google-signin-btn');
     if (btn) {
       btn.addEventListener('click', function() {
-        window.location.href = '/auth-test.html';
+        window.location.href = '/authentication';
       });
     }
   },

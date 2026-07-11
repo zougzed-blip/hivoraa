@@ -6,20 +6,29 @@ const protect = async (req, res, next) => {
     const token = req.cookies.token;
 
     if (!token) {
-      return res.status(401).json({ success: false, message: 'Access denied. Token missing.' });
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Please sign in to continue.' 
+      });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId).select('-__v');
 
     if (!user) {
-      return res.status(401).json({ success: false, message: 'User not found.' });
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Please sign in to continue.' 
+      });
     }
 
     req.user = user;
     next();
   } catch (error) {
-    return res.status(401).json({ success: false, message: 'Invalid or expired token.' });
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Your session has expired. Please sign in again.' 
+    });
   }
 };
 

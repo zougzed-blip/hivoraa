@@ -1,7 +1,14 @@
 var Auth = {
   isLoggedIn: function() {
-    return document.cookie.indexOf('token=') !== -1;
-  },
+  // Vérifier d'abord le cookie (marche en dev si pas httpOnly)
+  var cookies = document.cookie.split(';');
+  for (var i = 0; i < cookies.length; i++) {
+    var c = cookies[i].trim();
+    if (c.indexOf('token=') === 0) return true;
+  }
+  // Fallback : vérifier si on a un user stocké (le cookie httpOnly existe mais est invisible)
+  return this.getUser() !== null;
+},
 
   getUser: function() {
     var u = localStorage.getItem('hivoraa_user');
@@ -10,6 +17,24 @@ var Auth = {
 
   setUser: function(user) {
     localStorage.setItem('hivoraa_user', JSON.stringify(user));
+  },
+
+  updateUI: function() {
+    var b = document.getElementById('google-signin-btn');
+    var m = document.getElementById('user-mini');
+    var a = document.getElementById('avatar-letter');
+    var n = document.getElementById('user-name-display');
+
+    if (this.isLoggedIn()) {
+      var u = this.getUser();
+      if (b) b.style.display = 'none';
+      if (m) m.classList.remove('hidden');
+      if (a && u) a.textContent = (u.pseudonym || u.email ).charAt(0).toUpperCase();
+      if (n && u) n.textContent = u.pseudonym || u.email ;
+    } else {
+      if (b) b.style.display = 'block';
+      if (m) m.classList.add('hidden');
+    }
   },
 
   showLogoutConfirm: function() {
@@ -42,35 +67,16 @@ var Auth = {
   },
 
   logout: async function() {
-    try {
-      await API.post('/auth/logout');
-    } catch (error) {
-      console.warn('Logout request failed, continuing local logout', error);
-    }
-
-    localStorage.removeItem('hivoraa_user');
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = 'x-csrf-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-    this.updateUI();
-    window.location.href = '/authentication';
-  },
-
-  updateUI: function() {
-    var b = document.getElementById('google-signin-btn');
-    var m = document.getElementById('user-mini');
-    var a = document.getElementById('avatar-letter');
-    var n = document.getElementById('user-name-display');
-
-    if (this.isLoggedIn()) {
-      var u = this.getUser();
-      if (b) b.style.display = 'none';
-      if (m) m.classList.remove('hidden');
-      if (a && u) a.textContent = (u.pseudonym || u.email || 'U').charAt(0).toUpperCase();
-      if (n && u) n.textContent = u.pseudonym || u.email || 'User';
-    } else {
-      if (b) b.style.display = 'block';
-      if (m) m.classList.add('hidden');
-    }
+  try {
+    await API.post('/auth/logout');
+  } catch (error) {
+    console.warn('Logout request failed, continuing local logout', error);
   }
+
+  localStorage.removeItem('hivoraa_user');
+  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  document.cookie = 'x-csrf-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+  window.location.reload();
+},
 };

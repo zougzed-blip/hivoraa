@@ -49,6 +49,7 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "https://cdn.socket.io", "https://accounts.google.com", "https://fonts.googleapis.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      mediaSrc: ["'self'", "https://res.cloudinary.com"],
       imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://images.unsplash.com", "https://i.ytimg.com"],
       connectSrc: ["'self'", clientUrl, clientUrl.replace('https', 'wss').replace('http', 'ws')],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
@@ -94,7 +95,8 @@ var csrfProtection = function(req, res, next) {
     var cookieToken = req.cookies['x-csrf-token'];
     var headerToken = req.headers['x-csrf-token'];
     if (!cookieToken || !headerToken || cookieToken !== headerToken) {
-      return res.status(403).json({ success: false, message: 'CSRF token invalid' });
+      return res.status(403)
+      .json({ success: false, message: 'Your session has expired. Please refresh the page.' });
     }
   }
   next();

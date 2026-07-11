@@ -50,7 +50,7 @@ router.post(
   protect,
   audioLimiter,
   upload.single('audio'),
-  verifyFileSignature(['audio']),
+  verifyFileSignature(['audio', 'video']),
   sendAudioMessage
 );
 router.delete('/:id', protect, deleteStudyGroup);

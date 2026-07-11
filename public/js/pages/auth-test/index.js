@@ -14,7 +14,7 @@ function login() {
   var authUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
     "?client_id=" + CONFIG.GOOGLE_CLIENT_ID +
     "&redirect_uri=" + encodeURIComponent(CONFIG.REDIRECT_URI) +
-    "&response_type=id_token" + // id_token (JWT vérifiable), pas "token" (access token)
+    "&response_type=id_token" + 
     "&scope=openid%20email%20profile" +
     "&nonce=" + nonce +
     "&prompt=select_account";
@@ -23,7 +23,7 @@ function login() {
 }
 
 window.addEventListener('load', function () {
-  // Pas de onclick/onerror inline -> bloqués par la CSP, on attache en JS
+ 
   var googleBtn = document.getElementById('google-login-btn');
   if (googleBtn) googleBtn.addEventListener('click', login);
 
@@ -44,7 +44,6 @@ window.addEventListener('load', function () {
   var expectedNonce = sessionStorage.getItem('oauth_nonce');
   sessionStorage.removeItem('oauth_nonce');
 
-  // la vraie vérification cryptographique du token se fait côté serveur)
   try {
     var payload = JSON.parse(atob(idToken.split('.')[1]));
     if (expectedNonce && payload.nonce !== expectedNonce) {
@@ -61,11 +60,11 @@ window.addEventListener('load', function () {
   API.post('/auth/google', { token: idToken })
     .then(function (data) {
       if (data.success) {
-        // Le JWT est dans un cookie httpOnly, jamais lu en JS (voulu).
+        
         Auth.setUser(data.data.user);
         showStatus('Welcome! Redirecting...', 'success');
         setTimeout(function () {
-          window.location.href = '/index.html';
+          window.location.href = '/';
         }, 800);
       } else {
         showStatus(data.message || 'Authentication failed. Please try again.', 'error');
@@ -73,6 +72,6 @@ window.addEventListener('load', function () {
     })
     .catch(function (err) {
       showStatus('Connection error. Please try again.', 'error');
-      console.error(err);
+      
     });
 });

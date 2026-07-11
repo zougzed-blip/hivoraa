@@ -29,7 +29,6 @@ var KSFeed = {
 
       if (reset) container.textContent = '';
 
-      // Remove old Load More button
       var oldBtn = document.getElementById('load-more-btn');
       if (oldBtn) oldBtn.remove();
 
@@ -116,7 +115,7 @@ var KSFeed = {
     content.textContent = post.content || '';
     article.appendChild(content);
 
-    // Images - PAS d'echappement sur les URLs
+    // Images
     if (post.images && post.images.length > 0) {
       var imagesDiv = document.createElement('div');
       imagesDiv.className = 'post-images';
@@ -157,8 +156,9 @@ var KSFeed = {
       btn.setAttribute('data-post', postId);
       btn.setAttribute('data-vote', v.key);
       btn.addEventListener('click', async function() {
-        await API.post('/help-requests/' + postId + '/vote', { vote: this.dataset.vote });
-        KSFeed.fetch();
+        var voteType = this.dataset.vote;
+        await API.post('/help-requests/' + postId + '/vote', { vote: voteType });
+        updateVotesLocal(article, postId);
       });
       votes.appendChild(btn);
     });
@@ -251,9 +251,11 @@ var KSFeed = {
       var val = textarea.value.trim();
       if (!val) return;
       if (!KSSecurity.requireAuth()) { Toast.show('Sign in to reply'); return; }
-      await API.post('/help-requests/' + postId + '/reply', { content: KSSecurity.sanitize(val) });
-      textarea.value = '';
-      KSFeed.fetch();
+      var res = await API.post('/help-requests/' + postId + '/reply', { content: KSSecurity.sanitize(val) });
+      if (res.success) {
+        textarea.value = '';
+        addReplyToPost(article, res.data);
+      }
     });
     inputRow.appendChild(textarea);
     inputRow.appendChild(sendBtn);
@@ -263,3 +265,68 @@ var KSFeed = {
     return article;
   }
 };
+
+// Helper: Add reply without reloading
+function addReplyToPost(article, reply) {
+  var repliesSection = article.querySelector('.replies-section');
+  var inputRow = repliesSection.querySelector('.reply-input-row');
+
+  var item = document.createElement('div');
+  item.className = 'reply-item';
+
+  var rh = document.createElement('div');
+  rh.className = 'reply-header';
+  var ra = document.createElement('span');
+  ra.className = 'reply-author';
+  var user = Auth.getUser();
+  ra.textContent = reply.author ? reply.author.pseudonym : (user ? user.pseudonym : 'You');
+  var rt = document.createElement('span');
+  rt.className = 'reply-time';
+  rt.textContent = 'just now';
+  rh.appendChild(ra);
+  rh.appendChild(rt);
+
+  var rtxt = document.createElement('div');
+  rtxt.className = 'reply-text';
+  rtxt.textContent = reply.content || '';
+
+  item.appendChild(rh);
+  item.appendChild(rtxt);
+
+  repliesSection.insertBefore(item, inputRow);
+
+  var stats = article.querySelector('.post-stats');
+  if (stats) {
+    var match = stats.textContent.match(/\d+/);
+    var count = match ? parseInt(match[0]) + 1 : 1;
+    stats.textContent = count + ' replies';
+  }
+}
+
+function updateVotesLocal(article, postId) {
+  API.get('/help-requests/' + postId).then(function(data) {
+    if (!data.success || !data.data) return;
+    var post = data.data;
+    var tv = post.difficultyVotes ? post.difficultyVotes.length : 0;
+    var easy = post.difficultyVotes ? post.difficultyVotes.filter(function(v) { return v.vote === 'easy'; }).length : 0;
+    var medium = post.difficultyVotes ? post.difficultyVotes.filter(function(v) { return v.vote === 'medium'; }).length : 0;
+    var hard = post.difficultyVotes ? post.difficultyVotes.filter(function(v) { return v.vote === 'hard'; }).length : 0;
+    var eP = tv > 0 ? Math.round((easy / tv) * 100) : 0;
+    var mP = tv > 0 ? Math.round((medium / tv) * 100) : 0;
+    var hP = tv > 0 ? Math.round((hard / tv) * 100) : 0;
+
+    var diffBars = article.querySelector('.difficulty-mini');
+    if (diffBars) {
+      diffBars.innerHTML = '<div class="diff-mini-item"><span class="diff-mini-dot green"></span><div class="diff-mini-track"><div class="diff-mini-fill green" style="width:' + eP + '%;"></div></div><span class="diff-mini-pct">' + eP + '%</span></div>' +
+        '<div class="diff-mini-item"><span class="diff-mini-dot yellow"></span><div class="diff-mini-track"><div class="diff-mini-fill yellow" style="width:' + mP + '%;"></div></div><span class="diff-mini-pct">' + mP + '%</span></div>' +
+        '<div class="diff-mini-item"><span class="diff-mini-dot red"></span><div class="diff-mini-track"><div class="diff-mini-fill red" style="width:' + hP + '%;"></div></div><span class="diff-mini-pct">' + hP + '%</span></div>';
+    }
+
+    var voteBtns = article.querySelectorAll('.vote-btn');
+    if (voteBtns.length >= 3) {
+      voteBtns[0].textContent = 'Easy (' + easy + ')';
+      voteBtns[1].textContent = 'Medium (' + medium + ')';
+      voteBtns[2].textContent = 'Hard (' + hard + ')';
+    }
+  });
+}

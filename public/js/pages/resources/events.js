@@ -37,7 +37,7 @@ var RSEvents = {
 
     var signInBtn = document.getElementById('google-signin-btn');
     if (signInBtn) {
-      signInBtn.addEventListener('click', function() { window.location.href = '/auth-test.html'; });
+      signInBtn.addEventListener('click', function() { window.location.href = '/authentication'; });
     }
 
     var signOutBtn = document.getElementById('sign-out-link');

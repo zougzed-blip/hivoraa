@@ -17,6 +17,9 @@ var API = {
   },
 
   showLoading: function() {
+    var path = window.location.pathname;
+    if (path.indexOf('authentication') !== -1 || path.indexOf('auth-test') !== -1) return;
+
     this.ensureLoadingOverlay();
     this._loadingCount += 1;
     if (this._loadingCount === 1 && this._overlayEl) {
@@ -25,6 +28,9 @@ var API = {
   },
 
   hideLoading: function() {
+    var path = window.location.pathname;
+    if (path.indexOf('authentication') !== -1 || path.indexOf('auth-test') !== -1) return;
+
     if (this._loadingCount > 0) this._loadingCount -= 1;
     if (this._loadingCount === 0 && this._overlayEl) {
       this._overlayEl.classList.add('hidden');
